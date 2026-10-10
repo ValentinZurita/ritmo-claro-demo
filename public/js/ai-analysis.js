@@ -65,28 +65,37 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
       },
     },
   };
+  function setActionLabel(text) {
+    const label = ui.button?.querySelector(".ai-action-label");
+    if (label) label.textContent = text;
+    else if (ui.button) ui.button.textContent = text;
+  }
   function setReading(text, placeholder = false) {
     const output = document.getElementById("aiInterpretationText"),
-      section = document.querySelector(".ai-reading");
+      goal = document.querySelector(".goal");
     if (!output) return;
     const hasText = Boolean(text);
     output.hidden = !hasText;
-    output.textContent = text || "";
+    output.textContent = hasText ? text : "";
     output.classList.toggle("ai-placeholder", placeholder);
-    section?.classList.toggle("is-empty", !hasText);
+    goal?.classList.toggle("has-reading", hasText && !placeholder);
+    goal?.classList.toggle("is-busy", placeholder);
   }
   function showChartThinking(_title, detail) {
     setReading(detail, true);
   }
   function updateControls() {
     ui.button.disabled = analyzing;
+    ui.button.classList.toggle("is-busy", analyzing);
     if (analyzing) {
-      ui.button.textContent = "Analizando…";
+      setActionLabel("Analizando…");
       return;
     }
-    ui.button.textContent = resultCache.has(cacheKey("all", chartRuns()))
-      ? "Actualizar análisis"
-      : "Analizar con IA";
+    setActionLabel(
+      resultCache.has(cacheKey("all", chartRuns()))
+        ? "Actualizar análisis"
+        : "Analizar con IA",
+    );
   }
   function extractObject(text) {
     const match = String(text).match(/\{[\s\S]*\}/);
@@ -975,7 +984,9 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
       .replace(/^(?:SUMMARY|RESUMEN)\s*[:=]\s*/i, "")
       .trim()
       .slice(0, 2800);
-    return { chart: chart?.toLowerCase(), summary };
+    chart = chart?.toLowerCase();
+    if (chart === "speed") chart = "pace";
+    return { chart, summary };
   }
   function cacheKey(id, all) {
     return `${CONFIG.modelId}|${id}|${JSON.stringify(goalStore.getGoal())}|${JSON.stringify(all.map((r) => [r.date, r.distance, r.duration, r.hr, r.feel, r.cadence, r.rpe, r.elevationGain, r.caloriesKcal, r.note]))}`;
@@ -1044,7 +1055,7 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
         run &&
         Math.abs(run.distance_km - goal.distanceKm) <=
           Math.max(0.25, goal.distanceKm * 0.05);
-    return `Empieza con CHART: pace, speed, distances, days, heart o effort. La vista inicial es ${id}. Habla de tú, en dos párrafos cortos, como un coach después de una salida. El primero es el feedback de la última carrera y tiene que notarse. Cierra con la frase de «cierre», tal cual. El segundo la mete en el historial. Como mucho un número. No cites las notas, no recites la meta y no sueltes filas de cifras. No uses consignas.\n${JSON.stringify(
+    return `Empieza con CHART: pace, distances, days, heart o effort. Si hablaras de km/h, usa pace. La vista inicial es ${id}. Habla de tú, en dos párrafos cortos, como un coach después de una salida. El primero es el feedback de la última carrera y tiene que notarse. Cierra con la frase de «cierre», tal cual. El segundo la mete en el historial. Como mucho un número. No cites las notas, no recites la meta y no sueltes filas de cifras. No uses consignas.\n${JSON.stringify(
       {
         juicio: statisticianReading(periods),
         movimientos: movementReport(periods, rhythm),

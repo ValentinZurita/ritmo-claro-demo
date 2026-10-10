@@ -17,110 +17,117 @@
       <header class="top">
         <div class="brand">
           <div class="logo">↗</div>
-          Ritmo Claro
-        </div>
-      </header>
-      <section class="welcome">
-        <div>
-          <div class="eyebrow">Tu progreso, a tu ritmo</div>
-          <h1>Hola, Alex.</h1>
-          <p>Una lectura clara de cómo van tus carreras.</p>
+          <div>
+            Ritmo Claro
+            <p class="tagline">Tu progreso, a tu ritmo</p>
+          </div>
         </div>
         <div class="date" id="today"></div>
-      </section>
+      </header>
       <div class="layout">
-        <main class="maincol">
-          <section class="card goal">
-            <div class="goalhead">
-              <div>
-                <div class="eyebrow goal-eyebrow">Tu meta</div>
-                <h2 id="goalTitle">10 km en menos de 1 h 20 min</h2>
+        <section class="card goal">
+          <div class="goalhead">
+            <div>
+              <div class="eyebrow goal-eyebrow">Tu meta</div>
+              <h2 id="goalTitle">10 km en menos de 1 h 20 min</h2>
+            </div>
+            <div class="goal-actions">
+              <span class="tag" id="goalDate">30 nov 2026</span>
+              <button class="goal-edit" type="button" id="editGoal">
+                Editar meta
+              </button>
+            </div>
+          </div>
+          <div class="goaldetail">
+            <div class="big" id="longest">
+              6.2 km<span>mayor distancia registrada</span>
+            </div>
+            <div class="big" id="targetPace">
+              8:00<span>ritmo objetivo por km</span>
+            </div>
+          </div>
+          <div class="progressrow">
+            <span>Distancia de tu carrera más larga</span
+            ><span id="progressLabel">62% de 10 km</span>
+          </div>
+          <div class="bar"><i id="progressBar"></i></div>
+          <div class="goal-ai">
+            <div class="goal-ai-reading">
+              <div class="goal-ai-copy">
+                <span class="ai-badge">IA</span>
+                <p id="aiInterpretationText" hidden></p>
               </div>
-              <div class="goal-actions">
-                <span class="tag" id="goalDate">30 nov 2026</span>
-                <button class="goal-edit" type="button" id="editGoal">
-                  Editar meta
-                </button>
-              </div>
             </div>
-            <div class="goaldetail">
-              <div class="big" id="longest">
-                6.2 km<span>mayor distancia registrada</span>
-              </div>
-              <div class="big" id="targetPace">
-                8:00<span>ritmo objetivo por km</span>
-              </div>
-            </div>
-            <div class="progressrow">
-              <span>Distancia de tu carrera más larga</span
-              ><span id="progressLabel">62% de 10 km</span>
-            </div>
-            <div class="bar"><i id="progressBar"></i></div>
-          </section>
-          <section class="card chart-card" id="chartCarousel">
-            <div class="sectionhead chart-sectionhead">
-              <h2 id="chartTitle">Señales de tus datos</h2>
-              <div class="chart-range" id="chartRange"></div>
-            </div>
-            <div class="carousel-nav">
-              <div
-                class="carousel-tabs"
-                id="chartDots"
-                role="group"
-                aria-label="Explora las gráficas disponibles"
-              ></div>
-            </div>
-            <div class="chartwrap is-dash" id="chartSwipe">
-              <div class="chart-dash" id="chartDash"></div>
-              <canvas
-                id="paceChart"
-                aria-label="Gráfica de progreso de running"
-                hidden
-              ></canvas>
-            </div>
-            <div class="legend" id="chartLegend">
-              <span><i class="key"></i>Ritmo medio</span
-              ><span><i class="key orange"></i>Ritmo objetivo por km</span>
-            </div>
-            <div class="chart-reading">
-              <strong id="chartInsightTitle"
-                >Tendencia en carreras parecidas</strong
+            <button class="ai-action" type="button" id="modelAction">
+              <span class="ai-action-sheen" aria-hidden="true"></span>
+              <svg
+                class="ai-action-spark"
+                viewBox="0 0 16 16"
+                aria-hidden="true"
               >
-              <p id="chartInsightText">
-                La lectura aparecerá aquí, basada en tus registros.
-              </p>
-            </div>
-            <section
-              class="ai-reading is-empty"
-              aria-labelledby="aiInterpretationTitle"
-            >
-              <div class="ai-reading-head">
-                <h2 id="aiInterpretationTitle">Cómo vas</h2>
-                <button class="btn" type="button" id="modelAction">
-                  Analizar con IA
-                </button>
-              </div>
-              <p id="aiInterpretationText" class="ai-placeholder" hidden></p>
-            </section>
-          </section>
-        </main>
-        <aside class="sidecol">
-          <section class="card">
-            <div class="sectionhead">
-              <h2>Lo más reciente</h2>
-              <div class="run-actions">
-                <button class="btn secondary" type="button" id="importCsvBtn">
-                  Importar CSV</button
-                ><button class="btn" id="addRun">+ Registrar</button>
-              </div>
-            </div>
+                <path
+                  fill="currentColor"
+                  d="M6.2 0.4 7.35 4.55 11.5 5.7 7.35 6.85 6.2 11 5.05 6.85 0.9 5.7 5.05 4.55Z"
+                />
+                <path
+                  fill="currentColor"
+                  d="M12.35 8.2 12.95 10.2 14.95 10.8 12.95 11.4 12.35 13.4 11.75 11.4 9.75 10.8 11.75 10.2Z"
+                />
+              </svg>
+              <span class="ai-action-label">Analizar con IA</span>
+            </button>
+          </div>
+        </section>
+        <section class="card chart-card" id="chartCarousel">
+          <div class="sectionhead chart-sectionhead">
+            <h2 id="chartTitle">Señales de tus datos</h2>
+            <div class="chart-range" id="chartRange"></div>
+          </div>
+          <div class="carousel-nav">
             <div
-              class="runs"
-              id="runList"
-              role="region"
-              aria-label="Historial de carreras; desplázate para ver más"
-              tabindex="0"
+              class="carousel-tabs"
+              id="chartDots"
+              role="group"
+              aria-label="Explora las gráficas disponibles"
             ></div>
+          </div>
+          <div class="chartwrap is-dash" id="chartSwipe">
+            <div class="chart-dash" id="chartDash"></div>
+            <canvas
+              id="paceChart"
+              aria-label="Gráfica de progreso de running"
+              hidden
+            ></canvas>
+          </div>
+          <div class="legend" id="chartLegend">
+            <span><i class="key"></i>Ritmo medio</span
+            ><span><i class="key orange"></i>Ritmo objetivo por km</span>
+          </div>
+          <div class="chart-reading">
+            <strong id="chartInsightTitle"
+              >Tendencia en carreras parecidas</strong
+            >
+            <p id="chartInsightText">
+              La lectura aparecerá aquí, basada en tus registros.
+            </p>
+          </div>
+        </section>
+        <aside class="card history-card">
+          <div class="sectionhead">
+            <h2>Lo más reciente</h2>
+            <button class="btn" id="addRun">+ Registrar</button>
+          </div>
+          <div
+            class="runs"
+            id="runList"
+            role="region"
+            aria-label="Historial de carreras; desplázate para ver más"
+            tabindex="0"
+          ></div>
+          <div class="history-foot">
+            <button class="textbtn" type="button" id="importCsvBtn">
+              Importar CSV
+            </button>
             <button
               class="textbtn sample-runs-button"
               id="addSampleRuns"
@@ -128,7 +135,7 @@
             >
               Añadir carreras de prueba
             </button>
-          </section>
+          </div>
         </aside>
       </div>
     </div>
@@ -330,83 +337,87 @@
               required
             />
           </div>
-          <div class="field">
-            <label for="hr">Pulso medio (opcional)</label
-            ><input
-              id="hr"
-              type="number"
-              min="30"
-              max="240"
-              placeholder="150"
-            />
-          </div>
-          <div class="field">
-            <label for="feel">Sensación (opcional, 1–10)</label
-            ><input
-              id="feel"
-              type="number"
-              min="1"
-              max="10"
-              step="1"
-              placeholder="7"
-            />
-          </div>
-          <div class="field">
-            <label for="cadence">Cadencia (opcional)</label
-            ><input
-              id="cadence"
-              type="number"
-              min="1"
-              max="300"
-              placeholder="168"
-            />
-          </div>
-          <div class="field">
-            <label for="rpe">Esfuerzo percibido (opcional, 1–10)</label
-            ><input
-              id="rpe"
-              type="number"
-              min="1"
-              max="10"
-              step="1"
-              placeholder="6"
-            />
-          </div>
-          <div class="field">
-            <label for="elevationGain">Desnivel positivo (m, opcional)</label
-            ><input
-              id="elevationGain"
-              type="number"
-              min="0"
-              step="1"
-              placeholder="80"
-            />
-          </div>
-          <div class="field">
-            <label for="caloriesKcal"
-              >Calorías estimadas por tu app (kcal, opcional)</label
-            ><input
-              id="caloriesKcal"
-              type="number"
-              min="0"
-              step="1"
-              placeholder="320"
-            />
-          </div>
-          <p class="field full field-hint">
-            Esfuerzo es qué tan dura fue; sensación es qué tan bien te sentiste.
-            El ritmo y la velocidad media se calculan con distancia y duración.
-            Las calorías se guardan como estimación de la app; no las
-            calculamos.
-          </p>
-          <div class="field full">
-            <label for="note">Nota libre (opcional)</label
-            ><textarea
-              id="note"
-              placeholder="¿Qué notaste en esta carrera?"
-            ></textarea>
-          </div>
         </div>
+        <details class="run-optional">
+          <summary>Más datos (opcional)</summary>
+          <div class="formgrid">
+            <div class="field">
+              <label for="hr">Pulso medio</label
+              ><input
+                id="hr"
+                type="number"
+                min="30"
+                max="240"
+                placeholder="150"
+              />
+            </div>
+            <div class="field">
+              <label for="feel">Sensación (1–10)</label
+              ><input
+                id="feel"
+                type="number"
+                min="1"
+                max="10"
+                step="1"
+                placeholder="7"
+              />
+            </div>
+            <div class="field">
+              <label for="cadence">Cadencia</label
+              ><input
+                id="cadence"
+                type="number"
+                min="1"
+                max="300"
+                placeholder="168"
+              />
+            </div>
+            <div class="field">
+              <label for="rpe">Esfuerzo percibido (1–10)</label
+              ><input
+                id="rpe"
+                type="number"
+                min="1"
+                max="10"
+                step="1"
+                placeholder="6"
+              />
+            </div>
+            <div class="field">
+              <label for="elevationGain">Desnivel positivo (m)</label
+              ><input
+                id="elevationGain"
+                type="number"
+                min="0"
+                step="1"
+                placeholder="80"
+              />
+            </div>
+            <div class="field">
+              <label for="caloriesKcal"
+                >Calorías estimadas por tu app (kcal)</label
+              ><input
+                id="caloriesKcal"
+                type="number"
+                min="0"
+                step="1"
+                placeholder="320"
+              />
+            </div>
+            <p class="field full field-hint">
+              Esfuerzo es qué tan dura fue; sensación es qué tan bien te
+              sentiste. El ritmo se calcula con distancia y duración. Las
+              calorías se guardan como estimación de la app; no las calculamos.
+            </p>
+            <div class="field full">
+              <label for="note">Nota libre</label
+              ><textarea
+                id="note"
+                placeholder="¿Qué notaste en esta carrera?"
+              ></textarea>
+            </div>
+          </div>
+        </details>
         <div class="actions">
           <button class="btn secondary" type="button" id="cancel">
             Cancelar</button

@@ -27,12 +27,6 @@ export const chartSpecs = [
     subtitle: "Carreras de distancia parecida · un número menor es más rápido",
   },
   {
-    id: "speed",
-    title: "Velocidad en tus carreras",
-    shortTitle: "Velocidad",
-    subtitle: "Las mismas carreras · kilómetros por hora",
-  },
-  {
     id: "distances",
     title: "Distancia de cada salida",
     shortTitle: "Distancias",
@@ -79,7 +73,8 @@ const chartSafe = (value) =>
 export const chartRuns = () => runStore.listRunsSorted();
 export const getActiveChart = () => activeChart;
 export const setActiveChart = (id) => {
-  if (chartSpecs.some((spec) => spec.id === id)) activeChart = id;
+  const chartId = id === "speed" ? "pace" : id;
+  if (chartSpecs.some((spec) => spec.id === chartId)) activeChart = chartId;
 };
 function eligibleRuns(all) {
   return getComparableRunGroup(all).runs;
