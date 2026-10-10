@@ -1,0 +1,20 @@
+{
+  "name": "ritmo-claro-demo",
+  "version": "1.0.0",
+  "description": "Demo web para explorar progreso de running con análisis explicable.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "format": "prettier --write \"public/**/*.{html,css,js}\" worker.js README.md AGENTS.md wrangler.jsonc package.json",
+    "format:check": "prettier --check \"public/**/*.{html,css,js}\" worker.js README.md AGENTS.md wrangler.jsonc package.json"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.9",
+    "wrangler": "^4.149.0"
+  },
+  "private": true,
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "workerd@1.20261006.1": true
+  }
+}

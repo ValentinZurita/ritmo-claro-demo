@@ -1,0 +1,158 @@
+// File map: Cloudflare API routes, model providers, and response handling.
+
+const SYSTEM_PROMPT = `Eres el coach de quien corre. Hablas de tú, en español, como se habla después de una salida: corto, claro y en voz alta. Nada de listas, de rótulos ni de consignas como «Vas bien».
+
+Usa solo el juicio que te pasan. No recalcules. El ritmo está en min/km: un número menor es más rápido. El esfuerzo, del 1 al 10, es qué tan dura fue; no es lo mismo que sentirse bien. Las notas son contexto para ti, no un texto para repetir. No las cites ni las resumas.
+
+Empieza con una línea exacta CHART: pace, CHART: speed, CHART: distances, CHART: days, CHART: heart o CHART: effort. Usa distances si lo importante es lo lejos que llega, days si es cada cuánto sale, speed si hablas de km/h, heart si es el pulso, effort si es el esfuerzo, y pace en los demás casos. No inventes otras gráficas.
+
+Escribe dos párrafos cortos. Como mucho un número, el que de verdad importe. El resto dilo en palabras: más rápido, más lento, más suelto, más seguido, en el mismo sitio. No recites la meta, no des filas de cifras y no expliques lo que omites.
+
+El primero es el feedback de la última carrera, y tiene que notarse solo. Di la fecha y cómo le fue frente a las parecidas: si fue más rápida, más lenta o parecida, si el pulso acompañó, y si los kilómetros se quedaron en el mismo sitio. Cierra esa parte con una sola cosa para mirar y, al final, la frase de ánimo que te pasan en «cierre», tal cual. Esa frase cambia en cada consulta. Es un lema, no un plan y no una cita larga. No repitas el mismo arreglo de palabras de una lectura anterior.
+
+En el segundo, mete esa salida en el historial. Si el ritmo, el pulso y el esfuerzo de las carreras parecidas se mueven juntos, dilo en una frase. Si sale más o menos seguido, añádelo. Si la distancia no acompaña, dilo ahí también. Sin plan de entrenamiento.
+
+No declares a nadie listo y no des consejos de salud, nutrición o fisioterapia. Los registros EJEMPLO son ficticios.`;
+const DEFAULT_MODEL = "@cf/qwen/qwen3.8-27b";
+const MAX_CONTEXT_CHARS = 12000;
+
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+    },
+  });
+}
+
+function extractWorkersAiText(result) {
+  return result?.response ?? result?.choices?.[0]?.message?.content ?? "";
+}
+
+function extractGeminiText(result) {
+  return (result?.candidates?.[0]?.content?.parts ?? [])
+    .map((part) => part.text ?? "")
+    .join("")
+    .trim();
+}
+
+async function runGemini(context, env) {
+  if (!env.GEMINI_API_KEY) throw new Error("Gemini is not configured");
+  const model = env.GEMINI_MODEL || "gemini-3.5-flash";
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-goog-api-key": env.GEMINI_API_KEY,
+      },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [{ role: "user", parts: [{ text: context }] }],
+        generationConfig: { maxOutputTokens: 900, temperature: 0.4 },
+      }),
+    },
+  );
+  if (!response.ok) throw new Error("Gemini request failed");
+  return extractGeminiText(await response.json());
+}
+
+async function runOpenWeight(context, env) {
+  const model = env.OPEN_WEIGHT_MODEL || DEFAULT_MODEL;
+  const result = await env.AI.run(model, {
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: context },
+    ],
+    reasoning_effort: "low",
+    max_tokens: 900,
+    temperature: 0.4,
+  });
+  return String(extractWorkersAiText(result)).trim();
+}
+
+async function handleApi(request, env) {
+  const url = new URL(request.url);
+  if (url.pathname === "/api/health" && request.method === "GET") {
+    return json({
+      ok: true,
+      provider: env.AI_PROVIDER === "gemini" ? "gemini" : "open-weight",
+    });
+  }
+  if (url.pathname !== "/api/interpret")
+    return json({ error: "No encontrado" }, 404);
+  if (request.method !== "POST")
+    return json({ error: "Método no permitido" }, 405);
+
+  const origin = request.headers.get("origin");
+  if (origin && new URL(origin).host !== url.host)
+    return json({ error: "Origen no permitido" }, 403);
+
+  const length = Number(request.headers.get("content-length") || 0);
+  if (length > 16000)
+    return json({ error: "La solicitud es demasiado grande" }, 413);
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "Solicitud inválida" }, 400);
+  }
+  const context = typeof body?.context === "string" ? body.context.trim() : "";
+  if (!context || context.length > MAX_CONTEXT_CHARS) {
+    return json(
+      { error: "Faltan datos de análisis o superan el límite permitido" },
+      400,
+    );
+  }
+
+  // Best-effort per-browser limiter; Workers AI's daily account quota remains the hard free-tier cap.
+  if (env.AI_RATE_LIMITER) {
+    const clientKey = request.headers.get("x-client-key") || "anonymous";
+    if (!/^[a-f0-9-]{36}$/i.test(clientKey))
+      return json({ error: "Identificador de sesión inválido" }, 400);
+    const { success } = await env.AI_RATE_LIMITER.limit({ key: clientKey });
+    if (!success)
+      return json(
+        { error: "Límite temporal alcanzado; inténtalo en un minuto" },
+        429,
+      );
+  }
+
+  try {
+    const text =
+      env.AI_PROVIDER === "gemini"
+        ? await runGemini(context, env)
+        : await runOpenWeight(context, env);
+    if (!text)
+      return json({ error: "El modelo no devolvió una interpretación" }, 502);
+    return json({
+      text: text.slice(0, 4500),
+      provider: env.AI_PROVIDER === "gemini" ? "gemini" : "open-weight",
+    });
+  } catch (error) {
+    console.error(
+      "AI interpretation failed",
+      error instanceof Error ? error.message : "unknown error",
+    );
+    const detail = error instanceof Error ? error.message : "";
+    return json(
+      {
+        error: /allocation|neurons|quota/i.test(detail)
+          ? "La cuota diaria del modelo se agotó. Mientras tanto se muestra la lectura calculada con tus datos."
+          : "No se pudo obtener una interpretación del modelo",
+      },
+      502,
+    );
+  }
+}
+
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    if (url.pathname.startsWith("/api/")) return handleApi(request, env);
+    return env.ASSETS.fetch(request);
+  },
+};
