@@ -11,12 +11,16 @@ import {
 } from "./dashboard.js";
 import { formatDate as fmtDate, formatPace as fmtPace } from "./data/format.js";
 import { goalStore } from "./data/goal-store.js";
+import { readSession } from "./data/account.js";
 import { getComparableRunGroup } from "./analytics/comparable-runs.js";
 
 (() => {
+  // Bump promptVersion whenever SYSTEM_PROMPT in worker.js changes, so saved readings from the old prompt are not shown.
   const CONFIG = {
     modelId: "@cf/qwen/qwen3.8-27b",
     apiPath: "/api/interpret",
+    promptVersion: "coach-v2",
+    storagePrefix: "ritmo-claro-reading:",
   };
   const ui = {
     button: document.getElementById("modelAction"),
@@ -91,10 +95,14 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
       setActionLabel("Analizando…");
       return;
     }
+    const key = cacheKey("all", chartRuns()),
+      source = resultSources.get(key);
     setActionLabel(
-      resultCache.has(cacheKey("all", chartRuns()))
-        ? "Actualizar análisis"
-        : "Analizar con IA",
+      source === "model"
+        ? "Volver a analizar"
+        : resultCache.has(key)
+          ? "Reintentar análisis"
+          : "Analizar con IA",
     );
   }
   function extractObject(text) {
@@ -812,7 +820,7 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
     if (parts.length <= 1) return parts[0] || "";
     return `${parts.slice(0, -1).join(", ")} y ${parts.at(-1)}`;
   }
-  // Used while there is no earlier comparable run: describe only what this run shows.
+  // Used while there is no earlier comparable run: describe only what this run shows, in coach voice.
   function singleRunFallback(run, turn = 0) {
     const goal = goalStore.getGoal(),
       goalPace = goal.durationMinutes / goal.distanceKm,
@@ -822,29 +830,37 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
       seconds = Math.round(Math.abs(goalPace - run.pace_min_km) * 60),
       frame = Math.abs(turn) % 3,
       motto = COACH_CLOSERS[Math.abs(turn) % COACH_CLOSERS.length],
-      goalLine = !sameDistance
-        ? "Tu meta es de otra distancia, así que el ritmo de esta salida todavía no se compara con ella."
+      firstLine = `La del ${fmtDate(run.date)} es la única carrera registrada, así que todavía no tienes carreras parecidas con las que compararla.`,
+      distanceLine = sameDistance
+        ? "Su distancia es la de tu meta, así que su ritmo sí se puede mirar contra el objetivo."
+        : "Su distancia no es la de tu meta, así que su ritmo todavía no se compara con ella.",
+      paceLine = !sameDistance
+        ? ""
         : seconds <= 2
-          ? "Con la distancia de tu meta, el ritmo quedó muy cerca del objetivo."
-          : `Con la distancia de tu meta, el ritmo quedó unos ${seconds} segundos por km ${run.pace_min_km > goalPace ? "más lento" : "más rápido"} que el objetivo.`,
+          ? "Quedó muy cerca del ritmo que te propusiste."
+          : `Quedó unos ${seconds} segundos por km ${run.pace_min_km > goalPace ? "más lento" : "más rápido"} que el objetivo.`,
       effortLine = Number.isFinite(run.perceived_effort_1_to_10)
         ? ""
         : [
-            "Anota el esfuerzo del 1 al 10 en la próxima.",
-            "En la siguiente, apunta el esfuerzo.",
-            "Anota cómo te costó la próxima.",
+            "En la próxima anota el esfuerzo del 1 al 10: qué tan dura fue, no cómo te sentiste.",
+            "Apunta el esfuerzo de la próxima del 1 al 10, pensando en qué tan dura fue.",
+            "Anota cuánto te costó la próxima, en una escala del 1 al 10.",
           ][frame],
-      firstLine = `La del ${fmtDate(run.date)} es la única carrera registrada, así que todavía no hay carreras parecidas con las que compararla.`,
-      session = [
-        [firstLine, goalLine, effortLine, motto],
-        [firstLine, motto, goalLine, effortLine],
-        [motto, firstLine, goalLine, effortLine],
+      pointer =
+        "Y, si puedes, sal la próxima vez a una distancia parecida a esta para tener con qué comparar.",
+      first = [
+        [firstLine, distanceLine, paceLine, effortLine, pointer, motto],
+        [firstLine, paceLine, distanceLine, effortLine, motto, pointer],
+        [motto, firstLine, distanceLine, paceLine, effortLine, pointer],
       ][frame]
         .filter(Boolean)
-        .join(" ");
-    const history =
-      "Con una sola carrera no hay tendencia que leer. Cuando tengas otra de distancia parecida, aquí verás si el ritmo, el pulso y el esfuerzo se mueven juntos.";
-    return [session, history].join("\n\n");
+        .join(" "),
+      second = [
+        "Con una sola carrera no hay tendencia que leer.",
+        "Cuando tengas otra de distancia parecida, aquí verás si el ritmo, el pulso y el esfuerzo se mueven juntos.",
+        "Por ahora esta salida es el punto de partida de tu historial.",
+      ].join(" ");
+    return [first, second].join("\n\n");
   }
   function toolFallback(calls, turn = 0) {
     const latest = calls.find(
@@ -1042,6 +1058,36 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
   function cacheKey(id, all) {
     return `${CONFIG.modelId}|${id}|${JSON.stringify(goalStore.getGoal())}|${JSON.stringify(all.map((r) => [r.date, r.distance, r.duration, r.hr, r.feel, r.cadence, r.rpe, r.elevationGain, r.caloriesKcal, r.note]))}`;
   }
+  // One saved model reading per account (Drive file or guest), so the runner does not pay for a new call on every visit.
+  function readingStorageKey() {
+    const session = readSession();
+    return `${CONFIG.storagePrefix}${session?.fileId ? `drive:${session.fileId}` : "guest"}`;
+  }
+  function saveStoredReading(key, text) {
+    try {
+      localStorage.setItem(
+        readingStorageKey(),
+        JSON.stringify({ key, version: CONFIG.promptVersion, text }),
+      );
+    } catch {}
+  }
+  function restoreStoredReading() {
+    try {
+      const saved = JSON.parse(
+          localStorage.getItem(readingStorageKey()) || "null",
+        ),
+        key = cacheKey("all", chartRuns());
+      if (
+        saved?.version !== CONFIG.promptVersion ||
+        saved?.key !== key ||
+        !usefulNarrative(saved?.text)
+      )
+        return;
+      resultCache.set(key, saved.text);
+      resultSources.set(key, "model");
+      setReading(saved.text);
+    } catch {}
+  }
   function usefulNarrative(text) {
     const value = String(text || "")
       .replace(/<\|[^>]+\|>/g, "")
@@ -1195,6 +1241,7 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
         throw new Error("El modelo no devolvió una explicación utilizable");
       resultCache.set(key, summary);
       resultSources.set(key, "model");
+      saveStoredReading(key, summary);
       if (sequence === inferenceSeq) {
         if (modelSelectedChart) {
           aiSuggestedChart = selectedChart;
@@ -1238,9 +1285,8 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
     else if (!analyzing) setReading("");
     updateControls();
   });
+  // The cache key already includes the goal and every run field, so changed data misses on its own. Re-render only.
   window.addEventListener("ritmo-goal-updated", () => {
-    resultCache.clear();
-    resultSources.clear();
     aiSuggestedAnalysisKey = null;
     renderCurrentCarousel(chartRuns());
   });
@@ -1277,6 +1323,7 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
         "Servicio sin conexión · se mostrará una lectura de respaldo";
     }
   }
+  restoreStoredReading();
   void checkProvider();
   updateControls();
 })();

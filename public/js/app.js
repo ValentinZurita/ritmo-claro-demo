@@ -97,8 +97,17 @@ async function bootCloud() {
   }
 }
 
+// Saved AI readings are personal text; remove them whenever the account session ends.
+function clearStoredReadings() {
+  try {
+    for (const key of Object.keys(localStorage))
+      if (key.startsWith("ritmo-claro-reading:")) localStorage.removeItem(key);
+  } catch {}
+}
+
 function signOutToGuest() {
   signOutGoogle();
+  clearStoredReadings();
   location.reload();
 }
 
@@ -136,6 +145,7 @@ async function start() {
     await bootCloud();
   } catch {
     clearSession();
+    clearStoredReadings();
     startGuest();
     await loadFeatures();
     showLayout();

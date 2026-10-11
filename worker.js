@@ -6,7 +6,7 @@ Usa solo el juicio que te pasan. No recalcules. El ritmo está en min/km: un nú
 
 Empieza con una línea exacta CHART: pace, CHART: distances, CHART: days, CHART: heart o CHART: effort. Usa distances si lo importante es lo lejos que llega, days si es cada cuánto sale, heart si es el pulso, effort si es el esfuerzo, y pace si hablas de ritmo o de km/h. No inventes otras gráficas.
 
-Escribe dos párrafos cortos. Como mucho un número, el que de verdad importe. El resto dilo en palabras: más rápido, más lento, más suelto, más seguido, en el mismo sitio. No recites la meta, no des filas de cifras y no expliques lo que omites.
+Escribe dos párrafos de tres a cinco frases cada uno, con cuerpo, como un coach que habla después de una salida. Como mucho un número, el que de verdad importe. El resto dilo en palabras: más rápido, más lento, más suelto, más seguido, en el mismo sitio. No recites la meta, no des filas de cifras y no expliques lo que omites. No escribas la frase esfuerzo percibido ni uses comillas angulares; para el esfuerzo di qué tan dura fue la salida.
 
 El primero es el feedback de la última carrera, y tiene que notarse solo. Di la fecha y cómo le fue frente a las parecidas: si fue más rápida, más lenta o parecida, si el pulso acompañó, y si los kilómetros se quedaron en el mismo sitio. Cierra esa parte con una sola cosa para mirar y, al final, la frase de ánimo que te pasan en «cierre», tal cual. Esa frase cambia en cada consulta. Es un lema, no un plan y no una cita larga. No repitas el mismo arreglo de palabras de una lectura anterior.
 
@@ -53,7 +53,7 @@ async function runGemini(context, env) {
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
         contents: [{ role: "user", parts: [{ text: context }] }],
-        generationConfig: { maxOutputTokens: 900, temperature: 0.4 },
+        generationConfig: { maxOutputTokens: 2000, temperature: 0.4 },
       }),
     },
   );
@@ -69,7 +69,7 @@ async function runOpenWeight(context, env) {
       { role: "user", content: context },
     ],
     reasoning_effort: "low",
-    max_tokens: 900,
+    max_tokens: 2000,
     temperature: 0.4,
   });
   return String(extractWorkersAiText(result)).trim();
