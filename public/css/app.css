@@ -54,12 +54,50 @@ button {
   margin: auto;
   padding: 24px 28px 56px;
 }
+body.is-booting .layout {
+  visibility: hidden;
+  pointer-events: none;
+}
 .top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 18px;
+}
+.top-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.account-chip {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--muted);
+}
+.account-signin {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 11px;
+}
+.account-signin svg {
+  width: 14px;
+  height: 14px;
+}
+#bootError {
+  margin-bottom: 14px;
 }
 .brand {
   display: flex;
@@ -770,6 +808,23 @@ button {
 .modal.open {
   display: flex;
 }
+.modal.elevated {
+  z-index: 6;
+}
+.modal.onboarding-modal {
+  z-index: 4;
+}
+.onboarding-run-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+#accountForm .field {
+  margin-top: 12px;
+}
+#cancelAccount {
+  margin-top: 14px;
+}
 .dialog {
   background: var(--card);
   border-radius: 20px;
@@ -892,6 +947,9 @@ button {
   transform: translate(-50%, 0);
 }
 @media (max-width: 800px) {
+  .top {
+    align-items: flex-start;
+  }
   .shell {
     padding: 18px 15px 40px;
   }

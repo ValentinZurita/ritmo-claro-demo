@@ -633,8 +633,7 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
           "Hace falta otra carrera de distancia parecida para comparar.",
       };
     const pace = periods.pace_change_seconds_per_km,
-      ritmo =
-        pace > 2 ? "más rápido" : pace < -2 ? "más lento" : "parecido",
+      ritmo = pace > 2 ? "más rápido" : pace < -2 ? "más lento" : "parecido",
       earlyHr = meanOf(periods.early.heart_rate_bpm),
       recentHr = meanOf(periods.recent.heart_rate_bpm),
       earlyEffort = meanOf(periods.early.perceived_effort_1_to_10),
@@ -696,7 +695,11 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
         frase: `el ritmo en carreras parecidas pasó de ${fmtPace(periods.early.pace_min_km)} a ${fmtPace(periods.recent.pace_min_km)} min/km`,
       });
     }
-    if (reading.pulso === "más bajo" || reading.pulso === "más alto" || reading.pulso === "parecido") {
+    if (
+      reading.pulso === "más bajo" ||
+      reading.pulso === "más alto" ||
+      reading.pulso === "parecido"
+    ) {
       const earlyHr = periods.early.heart_rate_bpm,
         recentHr = periods.recent.heart_rate_bpm;
       items.push({
@@ -710,7 +713,11 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
         frase: `el pulso medio pasó de ${Math.round(earlyHr.mean)} a ${Math.round(recentHr.mean)}`,
       });
     }
-    if (reading.esfuerzo === "más bajo" || reading.esfuerzo === "más alto" || reading.esfuerzo === "parecido") {
+    if (
+      reading.esfuerzo === "más bajo" ||
+      reading.esfuerzo === "más alto" ||
+      reading.esfuerzo === "parecido"
+    ) {
       items.push({
         nombre: "esfuerzo",
         estado:
@@ -732,7 +739,8 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
         delta = after - before;
       items.push({
         nombre: "distancia de las salidas",
-        estado: delta > 0.5 ? "mejorando" : delta < -0.5 ? "empeorando" : "estancado",
+        estado:
+          delta > 0.5 ? "mejorando" : delta < -0.5 ? "empeorando" : "estancado",
         frase: `la distancia media pasó de ${before.toFixed(1)} a ${after.toFixed(1)} km`,
       });
     }
@@ -742,7 +750,8 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
       const delta = recentDays - previousDays;
       items.push({
         nombre: "días con carrera",
-        estado: delta >= 2 ? "mejorando" : delta <= -2 ? "empeorando" : "estancado",
+        estado:
+          delta >= 2 ? "mejorando" : delta <= -2 ? "empeorando" : "estancado",
         frase: `hubo ${recentDays} salidas en los últimos 28 días y ${previousDays} en los 28 anteriores`,
       });
     }
@@ -803,8 +812,9 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
     if (!latest?.available)
       return "No hay una carrera registrada que permita preparar un resumen.";
     const run = latest.latest,
-      periods = calls.find((call) => call.name === "compare_pace_periods")
-        ?.result,
+      periods = calls.find(
+        (call) => call.name === "compare_pace_periods",
+      )?.result,
       reading = statisticianReading(periods),
       movements = movementReport(
         periods,
@@ -813,8 +823,7 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
       seconds = Number.isFinite(periods?.pace_change_seconds_per_km)
         ? Math.round(Math.abs(periods.pace_change_seconds_per_km))
         : 0,
-      paceWords =
-        seconds > 2 ? `unos ${seconds} segundos más` : "un poco más",
+      paceWords = seconds > 2 ? `unos ${seconds} segundos más` : "un poco más",
       lighter =
         reading.ritmo === "más rápido" &&
         reading.pulso !== "más alto" &&
@@ -1036,7 +1045,10 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
       )
     )
       return "";
-    if ((value.match(/\d+/g) || []).length > 4 || /[«»]|\bAnotaste\b/i.test(value))
+    if (
+      (value.match(/\d+/g) || []).length > 4 ||
+      /[«»]|\bAnotaste\b/i.test(value)
+    )
       return "";
     return value;
   }
@@ -1127,7 +1139,9 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
       selectedChart = graphCharts.some((spec) => spec.id === reading.chart)
         ? reading.chart
         : id;
-      modelSelectedChart = graphCharts.some((spec) => spec.id === reading.chart);
+      modelSelectedChart = graphCharts.some(
+        (spec) => spec.id === reading.chart,
+      );
       const summary = usefulNarrative(reading.summary);
       if (!summary)
         throw new Error("El modelo no devolvió una explicación utilizable");

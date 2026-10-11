@@ -75,6 +75,9 @@ async function runOpenWeight(context, env) {
 
 async function handleApi(request, env) {
   const url = new URL(request.url);
+  if (url.pathname === "/api/google-config" && request.method === "GET") {
+    return json({ clientId: env.GOOGLE_CLIENT_ID || "" });
+  }
   if (url.pathname === "/api/health" && request.method === "GET") {
     return json({
       ok: true,
@@ -153,6 +156,13 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname.startsWith("/api/")) return handleApi(request, env);
-    return env.ASSETS.fetch(request);
+    const response = await env.ASSETS.fetch(request);
+    const headers = new Headers(response.headers);
+    headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
   },
 };

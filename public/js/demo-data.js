@@ -1,5 +1,7 @@
 // File map: dashboard summary and run-entry interactions using the run store.
 
+import { isCloudAccount } from "./data/account.js";
+import { runKey } from "./data/run-key.js";
 import { seedExtras } from "./data/sample-runs.js";
 import { runStore } from "./data/run-store.js";
 import {
@@ -82,16 +84,23 @@ $("runList").addEventListener("scroll", (event) => {
   visibleRunCount = Math.min(visibleRunCount + RUNS_PER_BATCH, totalRuns);
   renderRunList(sorted());
 });
-function open() {
+function savedMessage() {
+  return isCloudAccount()
+    ? "Carrera guardada en tu Drive"
+    : "Carrera guardada en este dispositivo";
+}
+
+export function openRunEditor() {
   const t = new Date();
   $("date").value = t.toISOString().slice(0, 10);
   $("modal").classList.add("open");
   $("distance").focus();
 }
-function close() {
+function close({ saved = false } = {}) {
   $("modal").classList.remove("open");
+  if (!saved) window.dispatchEvent(new Event("ritmo-run-editor-closed"));
 }
-$("addRun").onclick = open;
+$("addRun").onclick = openRunEditor;
 $("closeModal").onclick = close;
 $("cancel").onclick = close;
 $("modal").onclick = (e) => {
@@ -114,21 +123,26 @@ $("runForm").onsubmit = (e) => {
   };
   runStore.addRuns([run]);
   draw();
-  close();
+  close({ saved: true });
   e.target.reset();
+  $("toast").textContent = savedMessage();
   $("toast").classList.add("show");
   setTimeout(() => $("toast").classList.remove("show"), 2200);
+  window.dispatchEvent(new Event("ritmo-run-saved"));
 };
 const addSampleRunsButton = $("addSampleRuns"),
-  sampleKey = (r) => `${r.date}|${r.distance}|${r.duration}`,
   missingSamples = () => {
     const existing = runStore.listRuns();
     return seedExtras.filter(
-      (sample) => !existing.some((run) => sampleKey(run) === sampleKey(sample)),
+      (sample) => !existing.some((run) => runKey(run) === runKey(sample)),
     );
   };
 if (addSampleRunsButton) {
   const updateSampleButton = () => {
+    if (isCloudAccount()) {
+      addSampleRunsButton.hidden = true;
+      return;
+    }
     const n = missingSamples().length;
     addSampleRunsButton.hidden = n === 0;
     addSampleRunsButton.textContent = `Añadir ${n || seedExtras.length} carreras de prueba`;
@@ -150,7 +164,7 @@ if (addSampleRunsButton) {
     $("toast").classList.add("show");
     setTimeout(() => {
       $("toast").classList.remove("show");
-      $("toast").textContent = "Carrera guardada en este dispositivo";
+      $("toast").textContent = savedMessage();
     }, 2400);
   };
 }

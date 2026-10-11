@@ -4,10 +4,17 @@
 
 - `public/index.html`: page structure and stylesheet link.
 - `public/css/app.css`: all application styles.
-- `public/js/app.js`: module entry point that loads each feature module.
+- `public/js/app.js`: module entry point; restores guest or a Google Drive account, then loads feature modules.
+- `public/js/account-ui.js`: header Google sign-in button and signed-in chip.
+- `public/js/onboarding.js`: first-time cloud goal and first-run steps.
 - `public/js/data/sample-runs.js`: fictional example records.
-- `public/js/data/run-store.js`: browser persistence and run-history operations.
+- `public/js/data/run-key.js`: normalized run identity for local and cloud records.
+- `public/js/data/run-store.js`: run-history operations; initialized after boot chooses a backend.
 - `public/js/data/goal-store.js`: editable goal persistence and comparable-distance selection.
+- `public/js/data/account.js`: guest vs Google session and Drive store calls.
+- `public/js/data/google-client-id.js`: public Google client id for Pages and API fallback.
+- `public/js/data/google-drive-store.js`: create or open the Drive JSON file.
+- `public/js/data/cloud-sync.js`: queued Drive saves and a quiet refresh when the tab is visible.
 - `public/js/data/format.js`: shared date and pace formatting.
 - `public/js/data/chart-range.js`: calendar windows and chart downsampling for large histories.
 - `public/js/goal.js`: goal editor and goal summary rendering.
@@ -53,7 +60,8 @@ Ritmo Claro helps a runner understand progress toward a goal they define themsel
 - Keep styles in `public/css/app.css`; do not add inline CSS.
 - Keep repository documentation and source comments in English. The user-facing app stays in Spanish unless requested otherwise.
 - Avoid adding runtime libraries or frameworks unless a concrete feature needs them.
-- `data/run-store.js` owns the shared run store. Data, charts, and analysis features should import it directly and use its list, sort, and add operations instead of mutating shared run arrays. Keep calculations independent of page rendering. Feature modules should import their dependencies directly; do not add global compatibility adapters.
-- Keep the open-weight Cloudflare Worker as the default AI route. Never expose API keys in browser files or commits.
+- `data/run-store.js` owns the shared run store. `app.js` must initialize it (guest `localStorage` or the Drive store) before dynamically importing feature modules. Data, charts, and analysis features should import it directly and use its list, sort, and add operations instead of mutating shared run arrays. Keep calculations independent of page rendering. Feature modules should import their dependencies directly; do not add global compatibility adapters.
+- Guest mode keeps the fictional sample history on this device. Google sign-in starts empty and stores the goal and runs in one Drive file the app creates. Do not fall back to the sample seed if Drive fails. Do not collect demographic profile fields. Do not add a name-and-password account. Keep the Google Client ID in Worker env; never put a Client ID form in the runner UI.
+- Keep the open-weight Cloudflare Worker as the default AI route. Never expose API keys in browser files or commits. The Google Client ID is public by design; never log access tokens.
 - Preserve a local, calculated fallback when the AI service is unavailable or out of quota.
 - Keep this guide and `worker.js`'s `SYSTEM_PROMPT` aligned when product rules change.

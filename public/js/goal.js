@@ -32,7 +32,7 @@ function renderGoal() {
     `${formatPace(goal.durationMinutes / goal.distanceKm)}<span>ritmo objetivo por km</span>`;
 }
 
-function openGoalEditor() {
+export function openGoalEditor() {
   const goal = goalStore.getGoal();
   $("goalDistance").value = String(goal.distanceKm);
   $("goalHours").value = String(Math.floor(goal.durationMinutes / 60));
@@ -42,8 +42,9 @@ function openGoalEditor() {
   $("goalDistance").focus();
 }
 
-function closeGoalEditor() {
+function closeGoalEditor({ saved = false } = {}) {
   modal.classList.remove("open");
+  if (!saved) window.dispatchEvent(new Event("ritmo-goal-editor-closed"));
 }
 
 $("editGoal").addEventListener("click", openGoalEditor);
@@ -71,7 +72,8 @@ $("goalForm").addEventListener("submit", (event) => {
     durationMinutes,
     date: $("goalDateInput").value,
   });
-  closeGoalEditor();
+  closeGoalEditor({ saved: true });
+  window.dispatchEvent(new Event("ritmo-goal-saved"));
 });
 
 window.addEventListener("ritmo-goal-updated", renderGoal);

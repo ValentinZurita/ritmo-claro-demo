@@ -15,6 +15,7 @@
     "AI_PROVIDER": "workers-ai",
     "OPEN_WEIGHT_MODEL": "@cf/qwen/qwen3.8-27b",
     "GEMINI_MODEL": "gemini-3.5-flash",
+    "GOOGLE_CLIENT_ID": "605518414596-9hfolosoqalvvjo36mcvc5l9sd4g6ro9.apps.googleusercontent.com",
   },
   "ratelimits": [
     {

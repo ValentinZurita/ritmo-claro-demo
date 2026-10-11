@@ -1,7 +1,10 @@
 // File map: CSV mapping, preview, and batch import flow.
 
+import { isCloudAccount } from "./data/account.js";
 import { runStore } from "./data/run-store.js";
 import { draw, sorted } from "./demo-data.js";
+
+export let openCsvImporter = () => {};
 
 (() => {
   const $ = (id) => document.getElementById(id),
@@ -303,18 +306,23 @@ import { draw, sorted } from "./demo-data.js";
       ? `<table><thead><tr><th>Fecha</th><th>Distancia</th><th>Duración</th><th>Pulso</th><th>Sensación</th><th>Esfuerzo</th><th>Desnivel</th><th>kcal app</th></tr></thead><tbody>${show.map((r) => `<tr><td>${esc(r.date)}</td><td>${r.distance.toFixed(2)} km</td><td>${r.duration.toFixed(1)} min</td><td>${r.hr ?? "—"}</td><td>${r.feel ?? "—"}</td><td>${r.rpe ?? "—"}</td><td>${r.elevationGain === null ? "—" : `${Math.round(r.elevationGain)} m`}</td><td>${r.caloriesKcal ?? "—"}</td></tr>`).join("")}</tbody></table>${prepared.length > 5 ? `<div class="footnote compact">Vista previa de 5 de ${prepared.length} carreras.</div>` : ""}`
       : "";
   }
-  $("importCsvBtn").onclick = () => {
+  function closeCsv({ imported = false } = {}) {
+    modal.classList.remove("open");
+    if (!imported) window.dispatchEvent(new Event("ritmo-csv-closed"));
+  }
+  function openCsvModal() {
     modal.classList.add("open");
     fileInput.value = "";
     $("csvFileName").textContent = "Ningún archivo seleccionado";
     $("csvControls").hidden = true;
     $("confirmCsv").disabled = true;
     prepared = [];
-  };
-  $("closeCsv").onclick = $("cancelCsv").onclick = () =>
-    modal.classList.remove("open");
+  }
+  openCsvImporter = openCsvModal;
+  $("importCsvBtn").onclick = openCsvModal;
+  $("closeCsv").onclick = $("cancelCsv").onclick = () => closeCsv();
   modal.onclick = (e) => {
-    if (e.target === modal) modal.classList.remove("open");
+    if (e.target === modal) closeCsv();
   };
   $("csvDistanceUnit").onchange = preview;
   $("csvDurationUnit").onchange = preview;
@@ -348,14 +356,18 @@ import { draw, sorted } from "./demo-data.js";
     const count = prepared.length;
     runStore.addRuns(prepared);
     draw();
-    modal.classList.remove("open");
-    $("toast").textContent =
-      `${count} ${count === 1 ? "carrera importada" : "carreras importadas"}`;
+    closeCsv({ imported: true });
+    $("toast").textContent = isCloudAccount()
+      ? `${count} ${count === 1 ? "carrera guardada en tu Drive" : "carreras guardadas en tu Drive"}`
+      : `${count} ${count === 1 ? "carrera importada" : "carreras importadas"}`;
     $("toast").classList.add("show");
     setTimeout(() => {
       $("toast").classList.remove("show");
-      $("toast").textContent = "Carrera guardada en este dispositivo";
+      $("toast").textContent = isCloudAccount()
+        ? "Carrera guardada en tu Drive"
+        : "Carrera guardada en este dispositivo";
     }, 2400);
+    window.dispatchEvent(new Event("ritmo-csv-imported"));
   };
   $("downloadCsvTemplate").onclick = () => {
     const csv =

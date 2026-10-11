@@ -10,9 +10,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f5f4ef" />
     <title>Ritmo Claro — progreso de running</title>
-    <link rel="stylesheet" href="/css/app.css" />
+    <link rel="stylesheet" href="css/app.css" />
   </head>
-  <body>
+  <body class="is-booting">
     <div class="shell">
       <header class="top">
         <div class="brand">
@@ -22,8 +22,12 @@
             <p class="tagline">Tu progreso, a tu ritmo</p>
           </div>
         </div>
-        <div class="date" id="today"></div>
+        <div class="top-actions">
+          <div class="date" id="today"></div>
+          <div class="account" id="accountSlot"></div>
+        </div>
       </header>
+      <div id="bootError" class="app-load-error" hidden></div>
       <div class="layout">
         <section class="card goal">
           <div class="goalhead">
@@ -140,7 +144,7 @@
       </div>
     </div>
     <div
-      class="modal"
+      class="modal elevated"
       id="goalModal"
       role="dialog"
       aria-modal="true"
@@ -211,7 +215,7 @@
       </section>
     </div>
     <div
-      class="modal"
+      class="modal elevated"
       id="csvModal"
       role="dialog"
       aria-modal="true"
@@ -291,7 +295,7 @@
       <div id="analysisCards"></div>
     </div>
     <div
-      class="modal"
+      class="modal elevated"
       id="modal"
       role="dialog"
       aria-modal="true"
@@ -425,7 +429,55 @@
         </div>
       </form>
     </div>
+    <div
+      class="modal onboarding-modal"
+      id="onboardingModal"
+      hidden
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="onboardingTitle"
+    >
+      <section class="dialog">
+        <div class="dialoghead">
+          <div>
+            <h2 id="onboardingTitle">Tu cuenta</h2>
+            <div class="subtle" id="onboardingLead">
+              Un inicio corto para ver tu progreso.
+            </div>
+          </div>
+        </div>
+        <div id="onboardingStepGoal">
+          <p>
+            Primero tu meta: distancia, tiempo y fecha. No es un plan de
+            entreno.
+          </p>
+          <p class="footnote">
+            Queda en un archivo de tu Google Drive, no en este navegador.
+          </p>
+          <div class="actions">
+            <button class="btn" type="button" id="onboardingDefineGoal">
+              Definir meta
+            </button>
+          </div>
+        </div>
+        <div id="onboardingStepRuns" hidden>
+          <p>¿Tienes una salida o un archivo CSV?</p>
+          <div class="onboarding-run-actions">
+            <button class="btn" type="button" id="onboardingAddRun">
+              Añadir una carrera
+            </button>
+            <button class="btn secondary" type="button" id="onboardingCsv">
+              Importar CSV
+            </button>
+            <button class="textbtn" type="button" id="onboardingSkip">
+              Ahora no
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
     <div class="toast" id="toast">Carrera guardada en este dispositivo</div>
-    <script type="module" src="/js/app.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async></script>
+    <script type="module" src="js/app.js"></script>
   </body>
 </html>
