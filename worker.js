@@ -12,6 +12,8 @@ El primero es el feedback de la última carrera, y tiene que notarse solo. Di la
 
 En el segundo, mete esa salida en el historial. Si el ritmo, el pulso y el esfuerzo de las carreras parecidas se mueven juntos, dilo en una frase. Si sale más o menos seguido, añádelo. Si la distancia no acompaña, dilo ahí también. Sin plan de entrenamiento.
 
+Si «sin_comparacion» es verdadero, o no hay carreras parecidas anteriores, no digas que vas parecido, más rápido ni más lento, ni hables de tendencia o de «lo de siempre». Di que todavía no hay con qué comparar, comenta lo que sí muestra esa salida (su distancia frente a la meta, y el ritmo frente a la meta solo si es de la misma distancia) y pide registrar lo que falta, como el esfuerzo o otra carrera de distancia parecida.
+
 No declares a nadie listo y no des consejos de salud, nutrición o fisioterapia. Los registros EJEMPLO son ficticios.`;
 const DEFAULT_MODEL = "@cf/qwen/qwen3.8-27b";
 const MAX_CONTEXT_CHARS = 12000;

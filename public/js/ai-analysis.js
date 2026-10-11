@@ -348,11 +348,14 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
               : null;
           },
           goal = goalStore.getGoal(),
-          goalPace = goal.durationMinutes / goal.distanceKm;
+          goalPace = goal.durationMinutes / goal.distanceKm,
+          sameGoalDistance =
+            Math.abs(distance - goal.distanceKm) <=
+            Math.max(0.25, goal.distanceKm * 0.05);
         return {
           available: true,
           definition:
-            "La última carrera cronológica frente al promedio de carreras anteriores dentro de un margen de distancia del 5% (mínimo 50 m). El ritmo objetivo es solo una referencia contextual, no predice el resultado en otra distancia.",
+            "La última carrera cronológica frente al promedio de carreras anteriores dentro de un margen de distancia del 5% (mínimo 50 m). El ritmo objetivo solo se compara si la carrera es de la distancia de la meta; en otra distancia no es una referencia.",
           latest: {
             date: latest.date,
             distance_km: distance,
@@ -388,8 +391,12 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
           goal_context: {
             target_distance_km: goal.distanceKm,
             target_duration_minutes: goal.durationMinutes,
-            target_pace_min_km: goalPace,
-            difference_seconds_per_km: (goalPace - pace) * 60,
+            // Pace is compared with the goal only at the goal distance; otherwise it is not a like-for-like reference.
+            same_distance_as_goal: sameGoalDistance,
+            target_pace_min_km: sameGoalDistance ? goalPace : null,
+            difference_seconds_per_km: sameGoalDistance
+              ? (goalPace - pace) * 60
+              : null,
             date: goal.date,
           },
         };
@@ -805,6 +812,40 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
     if (parts.length <= 1) return parts[0] || "";
     return `${parts.slice(0, -1).join(", ")} y ${parts.at(-1)}`;
   }
+  // Used while there is no earlier comparable run: describe only what this run shows.
+  function singleRunFallback(run, turn = 0) {
+    const goal = goalStore.getGoal(),
+      goalPace = goal.durationMinutes / goal.distanceKm,
+      sameDistance =
+        Math.abs(run.distance_km - goal.distanceKm) <=
+        Math.max(0.25, goal.distanceKm * 0.05),
+      seconds = Math.round(Math.abs(goalPace - run.pace_min_km) * 60),
+      frame = Math.abs(turn) % 3,
+      motto = COACH_CLOSERS[Math.abs(turn) % COACH_CLOSERS.length],
+      goalLine = !sameDistance
+        ? "Tu meta es de otra distancia, así que el ritmo de esta salida todavía no se compara con ella."
+        : seconds <= 2
+          ? "Con la distancia de tu meta, el ritmo quedó muy cerca del objetivo."
+          : `Con la distancia de tu meta, el ritmo quedó unos ${seconds} segundos por km ${run.pace_min_km > goalPace ? "más lento" : "más rápido"} que el objetivo.`,
+      effortLine = Number.isFinite(run.perceived_effort_1_to_10)
+        ? ""
+        : [
+            "Anota el esfuerzo del 1 al 10 en la próxima.",
+            "En la siguiente, apunta el esfuerzo.",
+            "Anota cómo te costó la próxima.",
+          ][frame],
+      firstLine = `La del ${fmtDate(run.date)} es la única carrera registrada, así que todavía no hay carreras parecidas con las que compararla.`,
+      session = [
+        [firstLine, goalLine, effortLine, motto],
+        [firstLine, motto, goalLine, effortLine],
+        [motto, firstLine, goalLine, effortLine],
+      ][frame]
+        .filter(Boolean)
+        .join(" ");
+    const history =
+      "Con una sola carrera no hay tendencia que leer. Cuando tengas otra de distancia parecida, aquí verás si el ritmo, el pulso y el esfuerzo se mueven juntos.";
+    return [session, history].join("\n\n");
+  }
   function toolFallback(calls, turn = 0) {
     const latest = calls.find(
       (call) => call.name === "summarize_latest_run",
@@ -814,8 +855,9 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
     const run = latest.latest,
       periods = calls.find(
         (call) => call.name === "compare_pace_periods",
-      )?.result,
-      reading = statisticianReading(periods),
+      )?.result;
+    if (!periods?.available) return singleRunFallback(run, turn);
+    const reading = statisticianReading(periods),
       movements = movementReport(
         periods,
         calls.find((call) => call.name === "summarize_run_rhythm")?.result,
@@ -1067,15 +1109,21 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
         run &&
         Math.abs(run.distance_km - goal.distanceKm) <=
           Math.max(0.25, goal.distanceKm * 0.05);
-    return `Empieza con CHART: pace, distances, days, heart o effort. Si hablaras de km/h, usa pace. La vista inicial es ${id}. Habla de tú, en dos párrafos cortos, como un coach después de una salida. El primero es el feedback de la última carrera y tiene que notarse. Cierra con la frase de «cierre», tal cual. El segundo la mete en el historial. Como mucho un número. No cites las notas, no recites la meta y no sueltes filas de cifras. No uses consignas.\n${JSON.stringify(
+    const comparable = Boolean(periods?.available);
+    return `Empieza con CHART: pace, distances, days, heart o effort. Si hablaras de km/h, usa pace. La vista inicial es ${id}. Habla de tú, en dos párrafos cortos, como un coach después de una salida. El primero es el feedback de la última carrera y tiene que notarse. Cierra con la frase de «cierre», tal cual. El segundo la mete en el historial. Como mucho un número. No cites las notas, no recites la meta y no sueltes filas de cifras. No uses consignas. ${comparable ? "" : "Todavía no hay carreras parecidas con las que comparar: no hables de tendencia, ni de «lo de siempre», ni de que vas parecido. Di qué muestra esta salida y qué registrar para poder comparar la próxima."}\n${JSON.stringify(
       {
         juicio: statisticianReading(periods),
         movimientos: movementReport(periods, rhythm),
+        sin_comparacion: !comparable,
         meta: {
           distancia_km: goal.distanceKm,
           duracion_minutos: goal.durationMinutes,
           fecha: goal.date,
           la_ultima_carrera_es_de_la_misma_distancia: Boolean(sameDistance),
+          ritmo_meta_min_km:
+            sameDistance && goal.distanceKm > 0
+              ? goal.durationMinutes / goal.distanceKm
+              : null,
         },
         historial: {
           carreras: exposure?.runs_count ?? null,
