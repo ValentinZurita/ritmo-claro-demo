@@ -23,5 +23,10 @@
       "namespace_id": "7462810",
       "simple": { "limit": 10, "period": 60 },
     },
+    {
+      "name": "AI_IP_RATE_LIMITER",
+      "namespace_id": "7462811",
+      "simple": { "limit": 10, "period": 60 },
+    },
   ],
 }

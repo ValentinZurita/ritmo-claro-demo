@@ -32,23 +32,32 @@ export function isCloudAccount() {
 
 export function readSession() {
   try {
-    const saved = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+    const stored =
+      sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY);
+    const saved = JSON.parse(stored || "null");
     if (
       saved?.mode === "cloud" &&
       saved.token &&
       saved.fileId &&
       saved.username
-    )
+    ) {
+      if (!sessionStorage.getItem(SESSION_KEY))
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(saved));
+      localStorage.removeItem(SESSION_KEY);
       return saved;
+    }
   } catch {}
+  localStorage.removeItem(SESSION_KEY);
   return null;
 }
 
 export function writeSession(session) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  localStorage.removeItem(SESSION_KEY);
 }
 
 export function clearSession() {
+  sessionStorage.removeItem(SESSION_KEY);
   localStorage.removeItem(SESSION_KEY);
 }
 

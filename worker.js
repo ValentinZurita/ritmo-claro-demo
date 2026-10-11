@@ -45,6 +45,20 @@ function json(data, status = 200) {
   });
 }
 
+function withSecurityHeaders(response) {
+  const headers = new Headers(response.headers);
+  headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  headers.set("X-Content-Type-Options", "nosniff");
+  headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  headers.set("X-Frame-Options", "DENY");
+  headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 function extractWorkersAiText(result) {
   return result?.response ?? result?.choices?.[0]?.message?.content ?? "";
 }
@@ -109,7 +123,7 @@ async function handleApi(request, env) {
     return json({ error: "Método no permitido" }, 405);
 
   const origin = request.headers.get("origin");
-  if (origin && new URL(origin).host !== url.host)
+  if (!origin || origin !== url.origin)
     return json({ error: "Origen no permitido" }, 403);
 
   const length = Number(request.headers.get("content-length") || 0);
@@ -131,12 +145,23 @@ async function handleApi(request, env) {
     );
   }
 
-  // Best-effort per-browser limiter; Workers AI's daily account quota remains the hard free-tier cap.
+  // The browser key helps with normal use; the IP limiter prevents trivial key rotation.
   if (env.AI_RATE_LIMITER) {
     const clientKey = request.headers.get("x-client-key") || "anonymous";
     if (!/^[a-f0-9-]{36}$/i.test(clientKey))
       return json({ error: "Identificador de sesión inválido" }, 400);
     const { success } = await env.AI_RATE_LIMITER.limit({ key: clientKey });
+    if (!success)
+      return json(
+        { error: "Límite temporal alcanzado; inténtalo en un minuto" },
+        429,
+      );
+  }
+  if (env.AI_IP_RATE_LIMITER) {
+    const ipAddress = request.headers.get("cf-connecting-ip");
+    if (!ipAddress)
+      return json({ error: "No se pudo validar la solicitud" }, 403);
+    const { success } = await env.AI_IP_RATE_LIMITER.limit({ key: ipAddress });
     if (!success)
       return json(
         { error: "Límite temporal alcanzado; inténtalo en un minuto" },
@@ -175,14 +200,9 @@ async function handleApi(request, env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname.startsWith("/api/")) return handleApi(request, env);
+    if (url.pathname.startsWith("/api/"))
+      return withSecurityHeaders(await handleApi(request, env));
     const response = await env.ASSETS.fetch(request);
-    const headers = new Headers(response.headers);
-    headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers,
-    });
+    return withSecurityHeaders(response);
   },
 };
