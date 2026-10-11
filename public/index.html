@@ -151,6 +151,9 @@
       aria-labelledby="goalModalTitle"
     >
       <section class="dialog goal-dialog">
+        <div class="step-dots" role="img" aria-label="Paso 1 de 2">
+          <i class="on"></i><i></i>
+        </div>
         <div class="dialoghead">
           <div>
             <h2 id="goalModalTitle">Tu meta de running</h2>
@@ -174,8 +177,21 @@
               min="0.1"
               max="500"
               step="0.1"
+              placeholder="10"
               required
             />
+          </div>
+          <div
+            class="goal-presets"
+            role="group"
+            aria-label="Distancias comunes"
+          >
+            <button class="chip" type="button" data-km="5">5 km</button>
+            <button class="chip" type="button" data-km="10">10 km</button>
+            <button class="chip" type="button" data-km="21.1">
+              Media maratón
+            </button>
+            <button class="chip" type="button" data-km="42.2">Maratón</button>
           </div>
           <div class="goal-time-fields">
             <div class="field">
@@ -186,6 +202,7 @@
                 min="0"
                 max="99"
                 step="1"
+                placeholder="1"
                 required
               />
             </div>
@@ -197,6 +214,7 @@
                 min="0"
                 max="59"
                 step="1"
+                placeholder="20"
                 required
               />
             </div>
@@ -209,7 +227,9 @@
             <button class="btn secondary" type="button" id="cancelGoal">
               Cancelar
             </button>
-            <button class="btn" type="submit">Guardar meta</button>
+            <button class="btn" type="submit" id="saveGoal">
+              Guardar meta
+            </button>
           </div>
         </form>
       </section>
@@ -437,42 +457,21 @@
       aria-modal="true"
       aria-labelledby="onboardingTitle"
     >
-      <section class="dialog">
-        <div class="dialoghead">
-          <div>
-            <h2 id="onboardingTitle">Tu cuenta</h2>
-            <div class="subtle" id="onboardingLead">
-              Un inicio corto para ver tu progreso.
-            </div>
-          </div>
+      <section class="dialog onboarding-dialog">
+        <div class="step-dots" role="img" aria-label="Paso 2 de 2">
+          <i class="on"></i><i class="on"></i>
         </div>
-        <div id="onboardingStepGoal">
-          <p>
-            Primero tu meta: distancia, tiempo y fecha. No es un plan de
-            entreno.
-          </p>
-          <p class="footnote">
-            Queda en un archivo de tu Google Drive, no en este navegador.
-          </p>
-          <div class="actions">
-            <button class="btn" type="button" id="onboardingDefineGoal">
-              Definir meta
-            </button>
-          </div>
-        </div>
-        <div id="onboardingStepRuns" hidden>
-          <p>¿Tienes una salida o un archivo CSV?</p>
-          <div class="onboarding-run-actions">
-            <button class="btn" type="button" id="onboardingAddRun">
-              Añadir una carrera
-            </button>
-            <button class="btn secondary" type="button" id="onboardingCsv">
-              Importar CSV
-            </button>
-            <button class="textbtn" type="button" id="onboardingSkip">
-              Ahora no
-            </button>
-          </div>
+        <h2 id="onboardingTitle">Tu primera carrera</h2>
+        <div class="onboarding-actions">
+          <button class="btn" type="button" id="onboardingAddRun">
+            Añadir carrera
+          </button>
+          <button class="btn secondary" type="button" id="onboardingCsv">
+            Importar CSV
+          </button>
+          <button class="textbtn" type="button" id="onboardingSkip">
+            Ahora no
+          </button>
         </div>
       </section>
     </div>

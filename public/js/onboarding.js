@@ -12,6 +12,7 @@ function showOnboarding() {
   if (!modal) return;
   modal.hidden = false;
   modal.classList.add("open");
+  $("onboardingAddRun")?.focus();
 }
 
 function hideOnboarding() {
@@ -19,22 +20,6 @@ function hideOnboarding() {
   if (!modal) return;
   modal.classList.remove("open");
   modal.hidden = true;
-}
-
-function showGoalStep() {
-  $("onboardingStepGoal").hidden = false;
-  $("onboardingStepRuns").hidden = true;
-  $("onboardingTitle").textContent = "Tu meta";
-  $("onboardingLead").textContent =
-    "Distancia, tiempo y fecha. La meta da contexto; no crea un plan.";
-}
-
-function showRunsStep() {
-  $("onboardingStepGoal").hidden = true;
-  $("onboardingStepRuns").hidden = false;
-  $("onboardingTitle").textContent = "Tus primeras carreras";
-  $("onboardingLead").textContent =
-    "Anota una, sube un CSV, o déjalo para después.";
 }
 
 function finishOnboarding() {
@@ -49,43 +34,35 @@ function finishOnboarding() {
 
 export function startOnboarding() {
   active = true;
-  if (goalStore.hasGoal()) showRunsStep();
-  else showGoalStep();
-  showOnboarding();
+  if (goalStore.hasGoal()) showOnboarding();
+  else openGoal();
 }
 
 function openGoal() {
   waitingForGoal = true;
-  import("./goal.js").then((mod) => mod.openGoalEditor());
+  import("./goal.js").then((mod) => mod.openGoalEditor({ firstRun: true }));
 }
 
+// The editors open on top of this card, so hide it while they are in use.
 function openRun() {
   waitingForRun = true;
+  hideOnboarding();
   import("./demo-data.js").then((mod) => mod.openRunEditor());
 }
 
 function openCsv() {
   waitingForRun = true;
+  hideOnboarding();
   import("./csv-import.js").then((mod) => mod.openCsvImporter());
 }
 
-$("onboardingDefineGoal")?.addEventListener("click", openGoal);
 $("onboardingAddRun")?.addEventListener("click", openRun);
 $("onboardingCsv")?.addEventListener("click", openCsv);
 $("onboardingSkip")?.addEventListener("click", finishOnboarding);
-$("onboardingModal")?.addEventListener("click", (event) => {
-  if (event.target === $("onboardingModal")) return;
-});
 
 window.addEventListener("ritmo-goal-saved", () => {
   if (!active || !waitingForGoal) return;
   waitingForGoal = false;
-  showRunsStep();
-  showOnboarding();
-});
-
-window.addEventListener("ritmo-goal-editor-closed", () => {
-  if (!active) return;
   showOnboarding();
 });
 

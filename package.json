@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Demo web para explorar progreso de running con análisis explicable.",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --port 8080",
     "deploy": "wrangler deploy",
     "format": "prettier --write \"public/**/*.{html,css,js}\" worker.js README.md AGENTS.md wrangler.jsonc package.json",
     "format:check": "prettier --check \"public/**/*.{html,css,js}\" worker.js README.md AGENTS.md wrangler.jsonc package.json"

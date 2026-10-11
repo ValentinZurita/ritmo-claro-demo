@@ -69,19 +69,14 @@ const translations = {
   "Nota libre": "Note",
   "¿Qué notaste en esta carrera?": "What did you notice on this run?",
   "Guardar carrera": "Save run",
-  "Tu cuenta": "Your account",
-  "Tus primeras carreras": "Your first runs",
-  "Anota una, sube un CSV, o déjalo para después.":
-    "Add a run, upload a CSV, or leave it for later.",
-  "Un inicio corto para ver tu progreso.":
-    "A quick start to see your progress.",
-  "Primero tu meta: distancia, tiempo y fecha. No es un plan de entreno.":
-    "First, set your goal: distance, time, and date. This is not a training plan.",
-  "Queda en un archivo de tu Google Drive, no en este navegador.":
-    "It is saved in a file in your Google Drive, not in this browser.",
-  "Definir meta": "Set a goal",
-  "¿Tienes una salida o un archivo CSV?": "Do you have a run or a CSV file?",
-  "Añadir una carrera": "Add a run",
+  "¿Cuál es tu meta?": "What is your goal?",
+  Continuar: "Continue",
+  "Distancias comunes": "Common distances",
+  "Media maratón": "Half marathon",
+  Maratón: "Marathon",
+  "Paso 1 de 2": "Step 1 of 2",
+  "Paso 2 de 2": "Step 2 of 2",
+  "Tu primera carrera": "Your first run",
   "Ahora no": "Not now",
   "Carrera guardada en este dispositivo": "Run saved on this device",
   "Carrera guardada en tu Drive": "Run saved to your Drive",

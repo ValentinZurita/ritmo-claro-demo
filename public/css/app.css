@@ -813,11 +813,8 @@ body.is-booting .layout {
 }
 .modal.onboarding-modal {
   z-index: 8;
-}
-.onboarding-run-actions {
-  display: grid;
-  gap: 10px;
-  margin-top: 16px;
+  background: rgba(16, 34, 28, 0.5);
+  backdrop-filter: blur(6px);
 }
 #accountForm .field {
   margin-top: 12px;
@@ -921,6 +918,99 @@ body.is-booting .layout {
   justify-content: flex-end;
   gap: 9px;
   margin-top: 15px;
+}
+.dialog.onboarding-dialog {
+  padding: 28px 24px 24px;
+  text-align: center;
+  animation: dialog-in 0.25s ease-out;
+}
+.onboarding-dialog h2 {
+  font-size: 24px;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+.onboarding-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
+}
+.onboarding-actions .btn {
+  padding: 13px 14px;
+  font-size: 14px;
+}
+.onboarding-actions .textbtn {
+  justify-self: center;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.step-dots {
+  display: none;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.onboarding-dialog .step-dots,
+.is-first-run .step-dots {
+  display: flex;
+}
+.step-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--line);
+}
+.step-dots i.on {
+  width: 18px;
+  background: var(--green);
+}
+.modal.is-first-run .dialog {
+  animation: dialog-in 0.25s ease-out;
+}
+.is-first-run .close,
+.is-first-run #cancelGoal {
+  display: none;
+}
+.is-first-run .goal-form-actions {
+  grid-template-columns: 1fr;
+}
+.is-first-run .goal-form-actions .btn {
+  padding: 13px 14px;
+  font-size: 14px;
+}
+.goal-presets {
+  display: none;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.is-first-run .goal-presets {
+  display: flex;
+}
+.chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--green);
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.chip:hover {
+  border-color: var(--green);
+}
+.chip:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 .empty {
   font-size: 11px;
@@ -1188,7 +1278,9 @@ body.is-booting .layout {
   .goal-ai,
   .goal-ai-copy,
   .ai-badge::before,
-  .ai-action-sheen {
+  .ai-action-sheen,
+  .dialog.onboarding-dialog,
+  .modal.is-first-run .dialog {
     animation: none;
     transition: none;
   }
