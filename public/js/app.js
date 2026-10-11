@@ -11,6 +11,7 @@ import {
 import { hydrateGoal, initGoalStore } from "./data/goal-store.js";
 import { persistAll, startVisibilityHydrate } from "./data/cloud-sync.js";
 import { initGuestRunStore, initRunStore, runStore } from "./data/run-store.js";
+import { initLanguage, t } from "./i18n.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -112,6 +113,7 @@ function signOutToGuest() {
 }
 
 async function start() {
+  initLanguage();
   document.body.classList.add("is-booting");
   window.addEventListener("ritmo-account-ready", () => location.reload());
   window.addEventListener("ritmo-account-signout", signOutToGuest);
@@ -126,7 +128,7 @@ async function start() {
     } catch {
       const toast = $("toast");
       if (toast) {
-        toast.textContent = "No se pudo terminar de entrar con Google.";
+        toast.textContent = t("No se pudo terminar de entrar con Google.");
         toast.classList.add("show");
         setTimeout(() => toast.classList.remove("show"), 2800);
       }
@@ -151,7 +153,9 @@ async function start() {
     showLayout();
     const toast = $("toast");
     if (toast) {
-      toast.textContent = "Entra otra vez. Mientras tanto ves el demo local.";
+      toast.textContent = t(
+        "Entra otra vez. Mientras tanto ves el demo local.",
+      );
       toast.classList.add("show");
       setTimeout(() => toast.classList.remove("show"), 2800);
     }
@@ -160,7 +164,7 @@ async function start() {
 
 start().catch((error) => {
   showBootError(
-    error instanceof Error ? error.message : "No se pudo abrir Ritmo Claro",
+    error instanceof Error ? error.message : t("No se pudo abrir Ritmo Claro"),
   );
   if (!readSession()) showLayout();
 });

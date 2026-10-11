@@ -2,12 +2,13 @@
 
 import { goalStore } from "./data/goal-store.js";
 import { formatPace } from "./data/format.js";
+import { appLocale, isEnglish } from "./i18n.js";
 
 const $ = (id) => document.getElementById(id);
 const modal = $("goalModal");
 
 function formatDistance(distanceKm) {
-  return new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(
+  return new Intl.NumberFormat(appLocale, { maximumFractionDigits: 1 }).format(
     distanceKm,
   );
 }
@@ -17,13 +18,14 @@ function renderGoal() {
   const hours = Math.floor(goal.durationMinutes / 60);
   const minutes = Math.round(goal.durationMinutes % 60);
   const duration = hours
-    ? `${hours} h${minutes ? ` ${minutes} min` : ""}`
+    ? `${hours} ${isEnglish ? "hr" : "h"}${minutes ? ` ${minutes} min` : ""}`
     : `${minutes} min`;
-  $("goalTitle").textContent =
-    `${formatDistance(goal.distanceKm)} km en menos de ${duration}`;
+  $("goalTitle").textContent = isEnglish
+    ? `${formatDistance(goal.distanceKm)} km in under ${duration}`
+    : `${formatDistance(goal.distanceKm)} km en menos de ${duration}`;
   $("goalDate").textContent = new Date(
     `${goal.date}T12:00:00`,
-  ).toLocaleDateString("es-MX", {
+  ).toLocaleDateString(appLocale, {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -62,7 +64,11 @@ $("goalForm").addEventListener("submit", (event) => {
   const durationMinutes =
     Number($("goalHours").value) * 60 + Number($("goalMinutes").value);
   if (durationMinutes <= 0) {
-    $("goalMinutes").setCustomValidity("El tiempo debe ser mayor que cero.");
+    $("goalMinutes").setCustomValidity(
+      isEnglish
+        ? "Time must be greater than zero."
+        : "El tiempo debe ser mayor que cero.",
+    );
     $("goalMinutes").reportValidity();
     return;
   }

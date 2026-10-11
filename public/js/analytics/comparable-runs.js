@@ -1,5 +1,7 @@
 // File map: selects the best-supported distance group for fair run comparisons.
 
+import { appLocale } from "../i18n.js";
+
 export function getComparableRunGroup(records) {
   const runs = [...records]
     .filter(
@@ -49,7 +51,9 @@ export function getComparableRunGroup(records) {
 export function formatDistanceGroup(group) {
   if (!group?.runs?.length) return "sin registros comparables";
   const format = (value) =>
-    new Intl.NumberFormat("es-MX", { maximumFractionDigits: 1 }).format(value);
+    new Intl.NumberFormat(appLocale, { maximumFractionDigits: 1 }).format(
+      value,
+    );
   return group.minKm === group.maxKm
     ? `${format(group.centerKm)} km`
     : `${format(group.minKm)}–${format(group.maxKm)} km`;

@@ -1,5 +1,7 @@
 // File map: shared date and pace formatting for application features.
 
+import { appLocale } from "../i18n.js";
+
 export function formatPace(value) {
   if (!Number.isFinite(value)) return "—";
   let minutes = Math.floor(value),
@@ -12,7 +14,7 @@ export function formatPace(value) {
 }
 
 export function formatDate(value) {
-  return new Date(value + "T12:00:00").toLocaleDateString("es-MX", {
+  return new Date(value + "T12:00:00").toLocaleDateString(appLocale, {
     day: "numeric",
     month: "short",
   });

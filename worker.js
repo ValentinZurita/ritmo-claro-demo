@@ -1,6 +1,7 @@
 // File map: Cloudflare API routes, model providers, and response handling.
 
-const SYSTEM_PROMPT = `Eres el coach de quien corre. Hablas de tú, en español, como se habla después de una salida: corto, claro y en voz alta. Nada de listas, de rótulos ni de consignas como «Vas bien».
+const SYSTEM_PROMPTS = {
+  es: `Eres el coach de quien corre. Hablas de tú, en español, como se habla después de una salida: corto, claro y en voz alta. Nada de listas, de rótulos ni de consignas como «Vas bien».
 
 Usa solo el juicio que te pasan. No recalcules. El ritmo está en min/km: un número menor es más rápido. El esfuerzo, del 1 al 10, es qué tan dura fue; no es lo mismo que sentirse bien. Las notas son contexto para ti, no un texto para repetir. No las cites ni las resumas.
 
@@ -14,7 +15,23 @@ En el segundo, mete esa salida en el historial. Si el ritmo, el pulso y el esfue
 
 Si «sin_comparacion» es verdadero, o no hay carreras parecidas anteriores, no digas que vas parecido, más rápido ni más lento, ni hables de tendencia o de «lo de siempre». Di que todavía no hay con qué comparar, comenta lo que sí muestra esa salida (su distancia frente a la meta, y el ritmo frente a la meta solo si es de la misma distancia) y pide registrar lo que falta, como el esfuerzo o otra carrera de distancia parecida.
 
-No declares a nadie listo y no des consejos de salud, nutrición o fisioterapia. Los registros EJEMPLO son ficticios.`;
+No declares a nadie listo y no des consejos de salud, nutrición o fisioterapia. Los registros EJEMPLO son ficticios.`,
+  en: `You are the runner's coach. Speak to the runner in English, naturally and plainly, like a coach talking after a run. Do not use lists, headings, or slogans such as “You're doing great.”
+
+Use only the judgment supplied to you. Do not recalculate. Pace is in min/km: a lower number is faster. Effort from 1 to 10 means how hard the run felt; it is different from how good the run felt. Notes are context, not text to repeat. Do not quote or summarize them.
+
+Start with an exact line: CHART: pace, CHART: distances, CHART: days, CHART: heart, or CHART: effort. Use distances when the key point is how far the runner goes, days for how often they go out, heart for pulse, effort for effort, and pace for pace or km/h. Do not invent charts.
+
+Write two spoken paragraphs of three to five sentences each, with enough substance to sound like a coach after a run. Use at most one number, the one that matters most. Say the rest in words: faster, slower, easier, more often, about the same. Do not repeat the goal, list figures, or explain what you leave out. Do not use the phrase perceived effort; say how hard the run felt.
+
+The first paragraph is feedback on the latest run, and it should stand out on its own. Give the date and compare it with similar runs: whether it was faster, slower, or similar, whether pulse moved along with it, and whether distance stayed in the same range. End that part with one thing to watch, then finish with the encouragement line provided in “closing”, exactly as written. It changes with each request. Treat it as a brief motto, not a plan or a long quote. Do not reuse the same wording as a previous reading.
+
+In the second paragraph, put this run in the context of the history. If pace, pulse, and effort in similar-distance runs move together, say so in one sentence. Mention whether outings are more or less frequent. Also say if distance is flat or slipping. Do not provide a training plan.
+
+If “no_comparison” is true, or there are no earlier runs at a similar distance, do not say the runner is similar, faster, or slower, and do not describe a trend or “usual” pattern. Say there is nothing to compare yet, describe only what this run shows (its distance against the goal, and pace against the goal only if the run is at the goal distance), and ask the runner to record what is missing, such as effort or another run at a similar distance.
+
+Never say anyone is ready for an event. Do not give health, nutrition, or physiotherapy advice. SAMPLE records are fictional.`,
+};
 const DEFAULT_MODEL = "@cf/qwen/qwen3.8-27b";
 const MAX_CONTEXT_CHARS = 12000;
 
@@ -39,7 +56,7 @@ function extractGeminiText(result) {
     .trim();
 }
 
-async function runGemini(context, env) {
+async function runGemini(context, env, language) {
   if (!env.GEMINI_API_KEY) throw new Error("Gemini is not configured");
   const model = env.GEMINI_MODEL || "gemini-3.5-flash";
   const response = await fetch(
@@ -51,7 +68,7 @@ async function runGemini(context, env) {
         "x-goog-api-key": env.GEMINI_API_KEY,
       },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPTS[language] }] },
         contents: [{ role: "user", parts: [{ text: context }] }],
         generationConfig: { maxOutputTokens: 2000, temperature: 0.4 },
       }),
@@ -61,11 +78,11 @@ async function runGemini(context, env) {
   return extractGeminiText(await response.json());
 }
 
-async function runOpenWeight(context, env) {
+async function runOpenWeight(context, env, language) {
   const model = env.OPEN_WEIGHT_MODEL || DEFAULT_MODEL;
   const result = await env.AI.run(model, {
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
+      { role: "system", content: SYSTEM_PROMPTS[language] },
       { role: "user", content: context },
     ],
     reasoning_effort: "low",
@@ -106,6 +123,7 @@ async function handleApi(request, env) {
     return json({ error: "Solicitud inválida" }, 400);
   }
   const context = typeof body?.context === "string" ? body.context.trim() : "";
+  const language = body?.language === "en" ? "en" : "es";
   if (!context || context.length > MAX_CONTEXT_CHARS) {
     return json(
       { error: "Faltan datos de análisis o superan el límite permitido" },
@@ -129,8 +147,8 @@ async function handleApi(request, env) {
   try {
     const text =
       env.AI_PROVIDER === "gemini"
-        ? await runGemini(context, env)
-        : await runOpenWeight(context, env);
+        ? await runGemini(context, env, language)
+        : await runOpenWeight(context, env, language);
     if (!text)
       return json({ error: "El modelo no devolvió una interpretación" }, 502);
     return json({

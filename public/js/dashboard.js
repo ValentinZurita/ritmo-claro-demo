@@ -12,6 +12,7 @@ import {
   downsampleRuns,
   runsInRange,
 } from "./data/chart-range.js";
+import { isEnglish } from "./i18n.js";
 
 export const chartSpecs = [
   {
@@ -256,7 +257,13 @@ function drawLineMetric(all, key, target, color, higherIsFaster = false) {
   if (data.length < 1) {
     ctx.fillStyle = "#71807b";
     ctx.font = "12px system-ui";
-    ctx.fillText("Aún no hay datos suficientes para esta gráfica.", 16, 50);
+    ctx.fillText(
+      isEnglish
+        ? "There is not enough data for this chart yet."
+        : "Aún no hay datos suficientes para esta gráfica.",
+      16,
+      50,
+    );
     return;
   }
   let min =
@@ -379,14 +386,24 @@ function drawScatter(all, type) {
     ctx.font = "12px system-ui";
     ctx.fillText(
       type === "heart"
-        ? "Añade pulso a dos carreras parecidas."
+        ? isEnglish
+          ? "Add heart rate to two similar runs."
+          : "Añade pulso a dos carreras parecidas."
         : type === "feel"
-          ? "Añade sensación a dos carreras parecidas."
+          ? isEnglish
+            ? "Add feeling scores to two similar runs."
+            : "Añade sensación a dos carreras parecidas."
           : type === "cadencepace"
-            ? "Añade cadencia a dos carreras parecidas."
+            ? isEnglish
+              ? "Add cadence to two similar runs."
+              : "Añade cadencia a dos carreras parecidas."
             : type === "elevation"
-              ? "Añade desnivel a dos carreras parecidas."
-              : "Añade esfuerzo percibido a dos carreras parecidas.",
+              ? isEnglish
+                ? "Add elevation gain to two similar runs."
+                : "Añade desnivel a dos carreras parecidas."
+              : isEnglish
+                ? "Add perceived effort to two similar runs."
+                : "Añade esfuerzo percibido a dos carreras parecidas.",
       16,
       50,
     );
@@ -490,7 +507,13 @@ function drawWeekly(all) {
     ctx.fill();
     ctx.textAlign = "center";
     ctx.fillStyle = "#52625b";
-    ctx.fillText(`${item.count} sal.`, x + barW / 2, Math.max(11, y - 5));
+    ctx.fillText(
+      isEnglish
+        ? `${item.count} run${item.count === 1 ? "" : "s"}`
+        : `${item.count} sal.`,
+      x + barW / 2,
+      Math.max(11, y - 5),
+    );
     ctx.fillStyle = "#89958e";
     ctx.fillText(
       fmtDate(item.start.toISOString().slice(0, 10)),
@@ -501,7 +524,13 @@ function drawWeekly(all) {
   if (!data.length) {
     ctx.fillStyle = "#71807b";
     ctx.textAlign = "left";
-    ctx.fillText("Añade carreras fechadas para ver semanas.", 14, 50);
+    ctx.fillText(
+      isEnglish
+        ? "Add dated runs to see weeks."
+        : "Añade carreras fechadas para ver semanas.",
+      14,
+      50,
+    );
   }
 }
 function drawDistanceBars(all) {
@@ -560,7 +589,13 @@ function drawDistanceBars(all) {
   if (!runs.length) {
     ctx.fillStyle = "#71807b";
     ctx.textAlign = "left";
-    ctx.fillText("Añade carreras para ver sus distancias.", 14, 50);
+    ctx.fillText(
+      isEnglish
+        ? "Add runs to see their distances."
+        : "Añade carreras para ver sus distancias.",
+      14,
+      50,
+    );
   }
 }
 function drawRunDays(all) {
@@ -615,7 +650,9 @@ function drawRunDays(all) {
     ctx.textAlign = "center";
     ctx.fillStyle = "#52625b";
     ctx.fillText(
-      `${count} ${count === 1 ? "día" : "días"}`,
+      isEnglish
+        ? `${count} ${count === 1 ? "day" : "days"}`
+        : `${count} ${count === 1 ? "día" : "días"}`,
       x + barW / 2,
       Math.max(11, y - 5),
     );
@@ -629,7 +666,13 @@ function drawRunDays(all) {
   if (!data.length) {
     ctx.fillStyle = "#71807b";
     ctx.textAlign = "left";
-    ctx.fillText("Añade carreras fechadas para ver los días.", 14, 50);
+    ctx.fillText(
+      isEnglish
+        ? "Add dated runs to see days."
+        : "Añade carreras fechadas para ver los días.",
+      14,
+      50,
+    );
   }
 }
 function describeChart(all, type) {
@@ -900,14 +943,14 @@ export function renderCarousel(all) {
     : activeChart === "pace"
       ? `<span><i class="key"></i>Ritmo medio</span>${goalMatchesPaceGroup ? `<span><i class="key orange"></i>Meta: ${fmtPace(goalPace)} min/km</span>` : ""}`
       : activeChart === "speed"
-        ? `<span><i class="key"></i>Kilómetros por hora</span>${goalMatchesPaceGroup ? `<span><i class="key orange"></i>Meta: ${goalSpeed.toFixed(1)} km/h</span>` : ""}`
+        ? `<span><i class="key"></i>${isEnglish ? "Kilometers per hour" : "Kilómetros por hora"}</span>${goalMatchesPaceGroup ? `<span><i class="key orange"></i>${isEnglish ? "Goal" : "Meta"}: ${goalSpeed.toFixed(1)} km/h</span>` : ""}`
         : activeChart === "distances"
-          ? `<span><i class="key"></i>Kilómetros de cada salida</span><span><i class="key orange"></i>Meta: ${goal.distanceKm} km</span>`
+          ? `<span><i class="key"></i>${isEnglish ? "Kilometers per run" : "Kilómetros de cada salida"}</span><span><i class="key orange"></i>${isEnglish ? "Goal" : "Meta"}: ${goal.distanceKm} km</span>`
           : activeChart === "days"
-            ? '<span><i class="key"></i>Días con carrera en la semana</span>'
+            ? `<span><i class="key"></i>${isEnglish ? "Days with runs by week" : "Días con carrera en la semana"}</span>`
             : activeChart === "heart"
-              ? '<span><i class="key teal"></i>Un punto por carrera comparable</span>'
-              : '<span><i class="key"></i>Esfuerzo declarado (1–10)</span>';
+              ? `<span><i class="key teal"></i>${isEnglish ? "One point per comparable run" : "Un punto por carrera comparable"}</span>`
+              : `<span><i class="key"></i>${isEnglish ? "Reported effort (1–10)" : "Esfuerzo declarado (1–10)"}</span>`;
   if (isDash) {
     document
       .querySelectorAll(".carousel-tab")

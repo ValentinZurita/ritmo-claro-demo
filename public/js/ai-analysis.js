@@ -13,13 +13,14 @@ import { formatDate as fmtDate, formatPace as fmtPace } from "./data/format.js";
 import { goalStore } from "./data/goal-store.js";
 import { readSession } from "./data/account.js";
 import { getComparableRunGroup } from "./analytics/comparable-runs.js";
+import { appLocale, isEnglish } from "./i18n.js";
 
 (() => {
-  // Bump promptVersion whenever SYSTEM_PROMPT in worker.js changes, so saved readings from the old prompt are not shown.
+  // Bump promptVersion whenever either system prompt in worker.js changes, so old saved readings are not shown.
   const CONFIG = {
     modelId: "@cf/qwen/qwen3.8-27b",
     apiPath: "/api/interpret",
-    promptVersion: "coach-v2",
+    promptVersion: "coach-v3",
     storagePrefix: "ritmo-claro-reading:",
   };
   const ui = {
@@ -54,6 +55,7 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
           },
           body: JSON.stringify({
             context: String(messages.at(-1)?.content || ""),
+            language: isEnglish ? "en" : "es",
           }),
         });
         let payload = {};
@@ -794,6 +796,7 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
   ];
   const QUOTA_DAY_KEY = "ritmo-claro-quota-day";
   const QUOTA_TEXT_KEY = "ritmo-claro-quota-reading";
+  const QUOTA_LANGUAGE_KEY = "ritmo-claro-quota-language";
   function todayKey() {
     return new Date().toISOString().slice(0, 10);
   }
@@ -801,11 +804,16 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
     try {
       sessionStorage.setItem(QUOTA_DAY_KEY, todayKey());
       sessionStorage.setItem(QUOTA_TEXT_KEY, text);
+      sessionStorage.setItem(QUOTA_LANGUAGE_KEY, isEnglish ? "en" : "es");
     } catch {}
   }
   function savedQuotaReading() {
     try {
       if (sessionStorage.getItem(QUOTA_DAY_KEY) !== todayKey()) return "";
+      if (
+        sessionStorage.getItem(QUOTA_LANGUAGE_KEY) !== (isEnglish ? "en" : "es")
+      )
+        return "";
       return sessionStorage.getItem(QUOTA_TEXT_KEY) || "";
     } catch {
       return "";
@@ -867,7 +875,119 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
       ].join(" ");
     return [first, second].join("\n\n");
   }
+  function singleRunFallbackEnglish(run) {
+    const goal = goalStore.getGoal(),
+      sameDistance =
+        Math.abs(run.distance_km - goal.distanceKm) <=
+        Math.max(0.25, goal.distanceKm * 0.05),
+      date = new Intl.DateTimeFormat(appLocale, { dateStyle: "medium" }).format(
+        new Date(`${run.date}T12:00:00`),
+      ),
+      first = sameDistance
+        ? `There are no similar earlier runs to compare with yet. Your run on ${date} was at the distance you are aiming for, so its pace can be compared with that target, but there is no trend to read.`
+        : `There are no similar earlier runs to compare with yet. Your run on ${date} was ${run.distance_km < goal.distanceKm ? "shorter" : "longer"} than the distance you are aiming for, so its pace cannot be compared with that target. There is no trend to read.`,
+      watch = Number.isFinite(run.perceived_effort_1_to_10)
+        ? "Log another run at a similar distance so you can compare it."
+        : "Log how hard the next run felt and add another run at a similar distance to compare.",
+      motto = "Do what you need to do.";
+    return `${first} ${watch} ${motto}\n\nFor now, this is the starting point of your history. There is not enough comparable history to describe pace, pulse, effort, outing frequency, or distance changes.`;
+  }
+  function toolFallbackEnglish(calls) {
+    const latest = calls.find(
+        (call) => call.name === "summarize_latest_run",
+      )?.result,
+      periods = calls.find(
+        (call) => call.name === "compare_pace_periods",
+      )?.result;
+    if (!latest?.available) return "There is no recorded run to summarize yet.";
+    const run = latest.latest;
+    if (!periods?.available) return singleRunFallbackEnglish(run);
+
+    const prior = latest.previous_similar_runs,
+      paceDelta =
+        prior?.sample_count && Number.isFinite(prior.pace_min_km)
+          ? (run.pace_min_km - prior.pace_min_km) * 60
+          : null,
+      paceText =
+        paceDelta == null || Math.abs(paceDelta) <= 2
+          ? "close to"
+          : paceDelta < 0
+            ? "faster than"
+            : "slower than",
+      pulseText =
+        Number.isFinite(run.heart_rate_bpm) &&
+        Number.isFinite(prior?.heart_rate_bpm)
+          ? run.heart_rate_bpm - prior.heart_rate_bpm > 2
+            ? "with a higher pulse"
+            : prior.heart_rate_bpm - run.heart_rate_bpm > 2
+              ? "with a lower pulse"
+              : "with a similar pulse"
+          : "with no pulse comparison available",
+      effortText =
+        Number.isFinite(run.perceived_effort_1_to_10) &&
+        Number.isFinite(prior?.perceived_effort_1_to_10)
+          ? run.perceived_effort_1_to_10 - prior.perceived_effort_1_to_10 > 0.4
+            ? "and it felt harder"
+            : prior.perceived_effort_1_to_10 - run.perceived_effort_1_to_10 >
+                0.4
+              ? "and it felt easier"
+              : "and it felt similar"
+          : "and effort is not available for comparison",
+      movements = movementReport(
+        periods,
+        calls.find((call) => call.name === "summarize_run_rhythm")?.result,
+      ),
+      paceTrend =
+        periods.pace_change_seconds_per_km > 2
+          ? "Similar-distance pace has slowed over time."
+          : periods.pace_change_seconds_per_km < -2
+            ? "Similar-distance pace has become faster over time."
+            : "Similar-distance pace has stayed about the same.",
+      pulseTrend = movements.mejorando.some((phrase) =>
+        phrase.startsWith("el pulso"),
+      )
+        ? "Pulse has been lower."
+        : movements.empeorando.some((phrase) => phrase.startsWith("el pulso"))
+          ? "Pulse has been higher."
+          : "Pulse has been steady or there is not enough data to compare it.",
+      effortTrend = movements.mejorando.some((phrase) =>
+        phrase.startsWith("el esfuerzo"),
+      )
+        ? "Runs have felt easier."
+        : movements.empeorando.some((phrase) =>
+              phrase.startsWith("el esfuerzo"),
+            )
+          ? "Runs have felt harder."
+          : "Effort has been steady or there is not enough data to compare it.",
+      rhythm = calls.find(
+        (call) => call.name === "summarize_run_rhythm",
+      )?.result,
+      outingFrequency =
+        Number.isFinite(rhythm?.recent_28_days?.run_count) &&
+        Number.isFinite(rhythm?.preceding_28_days?.run_count)
+          ? rhythm.recent_28_days.run_count > rhythm.preceding_28_days.run_count
+            ? "You have been going out more often lately."
+            : rhythm.recent_28_days.run_count <
+                rhythm.preceding_28_days.run_count
+              ? "You have been going out less often lately."
+              : "Your outing frequency has stayed about the same."
+          : "There is not enough recent history to compare outing frequency.",
+      distanceTrend = movements.mejorando.some((phrase) =>
+        phrase.startsWith("la distancia"),
+      )
+        ? "Run distance has increased."
+        : movements.empeorando.some((phrase) =>
+              phrase.startsWith("la distancia"),
+            )
+          ? "Run distance has slipped."
+          : "Run distance has stayed about the same or there is not enough data to compare it.";
+    const date = new Intl.DateTimeFormat(appLocale, {
+      dateStyle: "medium",
+    }).format(new Date(`${run.date}T12:00:00`));
+    return `Your run on ${date} was ${paceText} earlier runs in a similar distance range, ${pulseText}, ${effortText}. Watch whether the same pattern shows up in another comparable run. Do what you need to do.\n\n${paceTrend} ${pulseTrend} ${effortTrend} ${outingFrequency} ${distanceTrend}`;
+  }
   function toolFallback(calls, turn = 0) {
+    if (isEnglish) return toolFallbackEnglish(calls);
     const latest = calls.find(
       (call) => call.name === "summarize_latest_run",
     )?.result;
@@ -1061,7 +1181,7 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
     return { chart, summary };
   }
   function cacheKey(id, all) {
-    return `${CONFIG.modelId}|${id}|${JSON.stringify(goalStore.getGoal())}|${JSON.stringify(all.map((r) => [r.date, r.distance, r.duration, r.hr, r.feel, r.cadence, r.rpe, r.elevationGain, r.caloriesKcal, r.note]))}`;
+    return `${CONFIG.modelId}|${appLocale}|${id}|${JSON.stringify(goalStore.getGoal())}|${JSON.stringify(all.map((r) => [r.date, r.distance, r.duration, r.hr, r.feel, r.cadence, r.rpe, r.elevationGain, r.caloriesKcal, r.note]))}`;
   }
   // One saved model reading per account (Drive file or guest), so the runner does not pay for a new call on every visit.
   function readingStorageKey() {
@@ -1127,13 +1247,13 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
       return "";
     // Reject unsupported physiological explanations even when the prose is fluent.
     if (
-      /\b(?:eficiencia cardiovascular|adaptaci[oó]n cardiovascular|mejora fisiol[oó]gica|el cuerpo (?:exige|necesita)|mejora(?:s)? de la capacidad cardiovascular)\b/i.test(
+      /\b(?:eficiencia cardiovascular|adaptaci[oó]n cardiovascular|mejora fisiol[oó]gica|el cuerpo (?:exige|necesita)|mejora(?:s)? de la capacidad cardiovascular|cardiovascular efficiency|cardiovascular adaptation|physiological improvement|your body (?:demands|needs)|improved cardiovascular capacity)\b/i.test(
         value,
       )
     )
       return "";
     if (
-      /\b(?:esfuerzo percibido|esfuerzo se (?:percibe|sinti[oó]) (?:m[aá]s )?(?:f[aá]cil|c[oó]modo)|margen subjetivo|manejas? ritmos? m[aá]s altos)\b/i.test(
+      /\b(?:esfuerzo percibido|esfuerzo se (?:percibe|sinti[oó]) (?:m[aá]s )?(?:f[aá]cil|c[oó]modo)|margen subjetivo|manejas? ritmos? m[aá]s altos|perceived effort|subjective margin|handling faster paces)\b/i.test(
         value,
       )
     )
@@ -1161,53 +1281,58 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
         Math.abs(run.distance_km - goal.distanceKm) <=
           Math.max(0.25, goal.distanceKm * 0.05);
     const comparable = Boolean(periods?.available);
-    return `Empieza con CHART: pace, distances, days, heart o effort. Si hablaras de km/h, usa pace. La vista inicial es ${id}. Habla de tú, en dos párrafos cortos, como un coach después de una salida. El primero es el feedback de la última carrera y tiene que notarse. Cierra con la frase de «cierre», tal cual. El segundo la mete en el historial. Como mucho un número. No cites las notas, no recites la meta y no sueltes filas de cifras. No uses consignas. ${comparable ? "" : "Todavía no hay carreras parecidas con las que comparar: no hables de tendencia, ni de «lo de siempre», ni de que vas parecido. Di qué muestra esta salida y qué registrar para poder comparar la próxima."}\n${JSON.stringify(
-      {
-        juicio: statisticianReading(periods),
-        movimientos: movementReport(periods, rhythm),
-        sin_comparacion: !comparable,
-        meta: {
-          distancia_km: goal.distanceKm,
-          duracion_minutos: goal.durationMinutes,
-          fecha: goal.date,
-          la_ultima_carrera_es_de_la_misma_distancia: Boolean(sameDistance),
-          ritmo_meta_min_km:
-            sameDistance && goal.distanceKm > 0
-              ? goal.durationMinutes / goal.distanceKm
-              : null,
-        },
-        historial: {
-          carreras: exposure?.runs_count ?? null,
-          mas_larga_km: exposure?.longest_run_km ?? null,
-          mas_larga_fecha: exposure?.longest_run_date ?? null,
-          porcentaje_de_la_meta: exposure?.longest_as_percent_of_goal ?? null,
-          carreras_cerca_de_la_meta:
-            exposure?.runs_at_least_80_percent_of_goal ?? null,
-          ultimos_28_dias: rhythm?.recent_28_days ?? null,
-          dias_desde_la_anterior:
-            rhythm?.days_since_previous_recorded_run ?? null,
-        },
-        ultima_carrera: run
-          ? {
-              fecha: run.date,
-              distancia_km: run.distance_km,
-              ritmo_min_km: run.pace_min_km,
-              pulso: run.heart_rate_bpm,
-              esfuerzo: run.perceived_effort_1_to_10,
-              nota: run.note,
-            }
-          : null,
-        mitades: periods,
-        cierre: COACH_CLOSERS[Math.abs(turn) % COACH_CLOSERS.length],
-        notas_anteriores: (notes?.notes || []).map((note) => ({
-          fecha: note.date,
-          ritmo_min_km: note.pace_min_km,
-          pulso: note.heart_rate_bpm,
-          esfuerzo: note.perceived_effort_1_to_10,
-          nota: note.note,
-        })),
+    const languageInstruction = isEnglish
+      ? `Respond entirely in English. Start with CHART: pace, distances, days, heart, or effort. The initial chart is ${id}. Speak to the runner in two short paragraphs, like a coach after a run. Make the latest run stand out in the first paragraph. End it with the exact “closing” line included in the data. Put the run in historical context in the second paragraph. Use at most one number. Do not quote notes, repeat the goal, list figures, or use slogans. ${comparable ? "" : "There are no similar runs to compare yet: do not claim a trend or say this run was similar, faster, or slower. Describe only what this run shows and what to record for comparison next time."}`
+      : `Empieza con CHART: pace, distances, days, heart o effort. Si hablaras de km/h, usa pace. La vista inicial es ${id}. Habla de tú, en dos párrafos cortos, como un coach después de una salida. El primero es el feedback de la última carrera y tiene que notarse. Cierra con la frase de «cierre», tal cual. El segundo la mete en el historial. Como mucho un número. No cites las notas, no recites la meta y no sueltes filas de cifras. No uses consignas. ${comparable ? "" : "Todavía no hay carreras parecidas con las que comparar: no hables de tendencia, ni de «lo de siempre», ni de que vas parecido. Di qué muestra esta salida y qué registrar para poder comparar la próxima."}`;
+    return `${languageInstruction}\n${JSON.stringify({
+      juicio: statisticianReading(periods),
+      movimientos: movementReport(periods, rhythm),
+      sin_comparacion: !comparable,
+      no_comparison: !comparable,
+      meta: {
+        distancia_km: goal.distanceKm,
+        duracion_minutos: goal.durationMinutes,
+        fecha: goal.date,
+        la_ultima_carrera_es_de_la_misma_distancia: Boolean(sameDistance),
+        ritmo_meta_min_km:
+          sameDistance && goal.distanceKm > 0
+            ? goal.durationMinutes / goal.distanceKm
+            : null,
       },
-    )}`;
+      historial: {
+        carreras: exposure?.runs_count ?? null,
+        mas_larga_km: exposure?.longest_run_km ?? null,
+        mas_larga_fecha: exposure?.longest_run_date ?? null,
+        porcentaje_de_la_meta: exposure?.longest_as_percent_of_goal ?? null,
+        carreras_cerca_de_la_meta:
+          exposure?.runs_at_least_80_percent_of_goal ?? null,
+        ultimos_28_dias: rhythm?.recent_28_days ?? null,
+        dias_desde_la_anterior:
+          rhythm?.days_since_previous_recorded_run ?? null,
+      },
+      ultima_carrera: run
+        ? {
+            fecha: run.date,
+            distancia_km: run.distance_km,
+            ritmo_min_km: run.pace_min_km,
+            pulso: run.heart_rate_bpm,
+            esfuerzo: run.perceived_effort_1_to_10,
+            nota: run.note,
+          }
+        : null,
+      mitades: periods,
+      cierre: isEnglish
+        ? "Do what you need to do."
+        : COACH_CLOSERS[Math.abs(turn) % COACH_CLOSERS.length],
+      closing: isEnglish ? "Do what you need to do." : undefined,
+      notas_anteriores: (notes?.notes || []).map((note) => ({
+        fecha: note.date,
+        ritmo_min_km: note.pace_min_km,
+        pulso: note.heart_rate_bpm,
+        esfuerzo: note.perceived_effort_1_to_10,
+        nota: note.note,
+      })),
+    })}`;
   }
   async function explainCurrentGraph(all, id) {
     const key = cacheKey("all", all);

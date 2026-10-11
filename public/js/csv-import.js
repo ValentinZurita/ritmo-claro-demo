@@ -3,6 +3,7 @@
 import { isCloudAccount } from "./data/account.js";
 import { runStore } from "./data/run-store.js";
 import { draw, sorted } from "./demo-data.js";
+import { isEnglish } from "./i18n.js";
 
 export let openCsvImporter = () => {};
 
@@ -64,7 +65,7 @@ export let openCsvImporter = () => {};
       "rpe",
       "Esfuerzo percibido 1–10",
       false,
-      ["esfuerzo percibido", "rpe", "session rpe"],
+      ["esfuerzo percibido", "perceived effort", "rpe", "session rpe"],
     ],
     [
       "elevationGain",
@@ -173,7 +174,7 @@ export let openCsvImporter = () => {};
     host.innerHTML = fields
       .map(
         ([key, label, required]) =>
-          `<div class="field"><label for="map_${key}">${label}</label><select id="map_${key}" data-key="${key}" ${required ? "required" : ""}>${required ? '<option value="">Selecciona columna</option>' : '<option value="">No importar</option>'}${headers.map((h, i) => `<option value="${i}" ${i === guess(key) ? "selected" : ""}>${esc(h || `Columna ${i + 1}`)}</option>`).join("")}</select></div>`,
+          `<div class="field"><label for="map_${key}">${label}</label><select id="map_${key}" data-key="${key}" ${required ? "required" : ""}>${required ? '<option value="">Selecciona columna</option>' : '<option value="">No importar</option>'}${headers.map((h, i) => `<option value="${i}" ${i === guess(key) ? "selected" : ""}>${esc(h || `${isEnglish ? "Column" : "Columna"} ${i + 1}`)}</option>`).join("")}</select></div>`,
       )
       .join("");
     host
@@ -296,14 +297,19 @@ export let openCsvImporter = () => {};
       }
     } else invalid = parsedRows.length;
     $("csvSummary").textContent = mapOk
-      ? `${prepared.length} listas para importar · ${invalid} con datos faltantes o inválidos · ${dupes} duplicadas omitidas.`
-      : "Asigna las columnas obligatorias de fecha, distancia y duración para ver la vista previa.";
+      ? isEnglish
+        ? `${prepared.length} ready to import · ${invalid} with missing or invalid data · ${dupes} duplicates skipped.`
+        : `${prepared.length} listas para importar · ${invalid} con datos faltantes o inválidos · ${dupes} duplicadas omitidas.`
+      : isEnglish
+        ? "Assign the required date, distance, and duration columns to see a preview."
+        : "Asigna las columnas obligatorias de fecha, distancia y duración para ver la vista previa.";
     $("confirmCsv").disabled = prepared.length === 0;
-    $("confirmCsv").textContent =
-      `Importar ${prepared.length} ${prepared.length === 1 ? "carrera" : "carreras"}`;
+    $("confirmCsv").textContent = isEnglish
+      ? `Import ${prepared.length} ${prepared.length === 1 ? "run" : "runs"}`
+      : `Importar ${prepared.length} ${prepared.length === 1 ? "carrera" : "carreras"}`;
     const show = prepared.slice(0, 5);
     $("csvPreview").innerHTML = show.length
-      ? `<table><thead><tr><th>Fecha</th><th>Distancia</th><th>Duración</th><th>Pulso</th><th>Sensación</th><th>Esfuerzo</th><th>Desnivel</th><th>kcal app</th></tr></thead><tbody>${show.map((r) => `<tr><td>${esc(r.date)}</td><td>${r.distance.toFixed(2)} km</td><td>${r.duration.toFixed(1)} min</td><td>${r.hr ?? "—"}</td><td>${r.feel ?? "—"}</td><td>${r.rpe ?? "—"}</td><td>${r.elevationGain === null ? "—" : `${Math.round(r.elevationGain)} m`}</td><td>${r.caloriesKcal ?? "—"}</td></tr>`).join("")}</tbody></table>${prepared.length > 5 ? `<div class="footnote compact">Vista previa de 5 de ${prepared.length} carreras.</div>` : ""}`
+      ? `<table><thead><tr><th>${isEnglish ? "Date" : "Fecha"}</th><th>${isEnglish ? "Distance" : "Distancia"}</th><th>${isEnglish ? "Duration" : "Duración"}</th><th>${isEnglish ? "Heart rate" : "Pulso"}</th><th>${isEnglish ? "Feeling" : "Sensación"}</th><th>${isEnglish ? "Effort" : "Esfuerzo"}</th><th>${isEnglish ? "Elevation" : "Desnivel"}</th><th>App kcal</th></tr></thead><tbody>${show.map((r) => `<tr><td>${esc(r.date)}</td><td>${r.distance.toFixed(2)} km</td><td>${r.duration.toFixed(1)} min</td><td>${r.hr ?? "—"}</td><td>${r.feel ?? "—"}</td><td>${r.rpe ?? "—"}</td><td>${r.elevationGain === null ? "—" : `${Math.round(r.elevationGain)} m`}</td><td>${r.caloriesKcal ?? "—"}</td></tr>`).join("")}</tbody></table>${prepared.length > 5 ? `<div class="footnote compact">${isEnglish ? `Preview of 5 of ${prepared.length} runs.` : `Vista previa de 5 de ${prepared.length} carreras.`}</div>` : ""}`
       : "";
   }
   function closeCsv({ imported = false } = {}) {
@@ -357,21 +363,30 @@ export let openCsvImporter = () => {};
     runStore.addRuns(prepared);
     draw();
     closeCsv({ imported: true });
-    $("toast").textContent = isCloudAccount()
-      ? `${count} ${count === 1 ? "carrera guardada en tu Drive" : "carreras guardadas en tu Drive"}`
-      : `${count} ${count === 1 ? "carrera importada" : "carreras importadas"}`;
+    $("toast").textContent = isEnglish
+      ? isCloudAccount()
+        ? `${count} run${count === 1 ? "" : "s"} saved to your Drive`
+        : `${count} run${count === 1 ? "" : "s"} imported`
+      : isCloudAccount()
+        ? `${count} ${count === 1 ? "carrera guardada en tu Drive" : "carreras guardadas en tu Drive"}`
+        : `${count} ${count === 1 ? "carrera importada" : "carreras importadas"}`;
     $("toast").classList.add("show");
     setTimeout(() => {
       $("toast").classList.remove("show");
-      $("toast").textContent = isCloudAccount()
-        ? "Carrera guardada en tu Drive"
-        : "Carrera guardada en este dispositivo";
+      $("toast").textContent = isEnglish
+        ? isCloudAccount()
+          ? "Run saved to your Drive"
+          : "Run saved on this device"
+        : isCloudAccount()
+          ? "Carrera guardada en tu Drive"
+          : "Carrera guardada en este dispositivo";
     }, 2400);
     window.dispatchEvent(new Event("ritmo-csv-imported"));
   };
   $("downloadCsvTemplate").onclick = () => {
-    const csv =
-      'fecha,distancia_km,duracion_min,pulso_medio_lpm,sensacion_1_10,cadencia_pasos_min,esfuerzo_percibido_1_10,desnivel_positivo_m,calorias_kcal,nota\n2026-10-10,5,38.5,150,7,168,6,80,320,"Ritmo cómodo"\n';
+    const csv = isEnglish
+      ? 'date,distance_km,duration_min,average_heart_rate_bpm,feeling_1_10,cadence_steps_min,perceived_effort_1_10,elevation_gain_m,calories_kcal,note\n2026-10-10,5,38.5,150,7,168,6,80,320,"Comfortable pace"\n'
+      : 'fecha,distancia_km,duracion_min,pulso_medio_lpm,sensacion_1_10,cadencia_pasos_min,esfuerzo_percibido_1_10,desnivel_positivo_m,calorias_kcal,nota\n2026-10-10,5,38.5,150,7,168,6,80,320,"Ritmo cómodo"\n';
     const url = URL.createObjectURL(
       new Blob([csv], { type: "text/csv;charset=utf-8" }),
     );

@@ -4,7 +4,9 @@
 
 ![Ritmo Claro dashboard](docs/screenshot.png)
 
-Ritmo Claro turns your logged runs into trends you can trust: pace, pulse, effort, and how often and how far you run. You set the goal, any distance, time, and date. The app calculates every number in code, and an AI coach explains what the history shows in plain Spanish.
+Ritmo Claro turns your logged runs into trends you can trust: pace, pulse, effort, and how often and how far you run. You set the goal, any distance, time, and date. The app calculates every number in code, and an AI coach explains what the history shows in plain English or Spanish.
+
+The interface and global AI reading follow your browser's English or Spanish preference. Other browser languages default to Spanish.
 
 ## What it does
 
@@ -28,7 +30,7 @@ Deploy the Worker with `npm run deploy`.
 
 ## Accounts
 
-Without an account, the app runs on fictional example runs stored in this browser. **Continuar con Google** creates a Drive file that holds your goal and runs. Google sign-in needs a public OAuth Client ID in `GOOGLE_CLIENT_ID` (`wrangler.jsonc`).
+Without an account, the app runs on fictional example runs stored in this browser. **Continue with Google** creates a Drive file that holds your goal and runs. Google sign-in needs a public OAuth Client ID in `GOOGLE_CLIENT_ID` (`wrangler.jsonc`).
 
 ## Built with
 
