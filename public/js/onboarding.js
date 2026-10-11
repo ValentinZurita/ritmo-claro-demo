@@ -49,7 +49,6 @@ function finishOnboarding() {
 
 export function startOnboarding() {
   active = true;
-  document.body.classList.add("is-booting");
   if (goalStore.hasGoal()) showRunsStep();
   else showGoalStep();
   showOnboarding();

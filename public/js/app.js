@@ -58,9 +58,30 @@ function initCloudStores() {
   });
 }
 
+function withTimeout(promise, ms, message) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 async function bootCloud() {
+  showBootError("Abriendo tu cuenta…");
   initCloudStores();
-  const loaded = await fetchStore();
+  const loaded = await withTimeout(
+    fetchStore(),
+    20000,
+    "Google Drive no respondió",
+  );
   runStore.setRuns(loaded.runs || []);
   hydrateGoal({
     goal: loaded.goal,
@@ -68,13 +89,12 @@ async function bootCloud() {
     extra: loaded.extraMeta,
   });
   startVisibilityHydrate();
-  showBootError("");
   await loadFeatures();
+  showLayout();
+  showBootError("");
   if (!loaded.goal || !loaded.onboardingComplete) {
     window.dispatchEvent(new Event("ritmo-start-onboarding"));
-    return;
   }
-  showLayout();
 }
 
 function signOutToGuest() {
@@ -88,17 +108,19 @@ async function start() {
   window.addEventListener("ritmo-account-signout", signOutToGuest);
   window.addEventListener("ritmo-onboarding-done", showLayout);
 
-  try {
-    if (await consumeGoogleRedirect()) {
-      location.replace(`${location.origin}/`);
-      return;
-    }
-  } catch {
-    const toast = $("toast");
-    if (toast) {
-      toast.textContent = "No se pudo terminar de entrar con Google.";
-      toast.classList.add("show");
-      setTimeout(() => toast.classList.remove("show"), 2800);
+  if (!readSession()) {
+    try {
+      if (await consumeGoogleRedirect()) {
+        location.replace(`${location.origin}/`);
+        return;
+      }
+    } catch {
+      const toast = $("toast");
+      if (toast) {
+        toast.textContent = "No se pudo terminar de entrar con Google.";
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 2800);
+      }
     }
   }
 
