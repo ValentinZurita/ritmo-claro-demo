@@ -3,7 +3,7 @@
 name: pages
 on:
   push:
-    branches: [main, google-account-onboarding]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
