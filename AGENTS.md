@@ -41,5 +41,5 @@ Ritmo Claro shows a runner how they are progressing toward a goal they define. T
 - Guest mode keeps the fictional sample history on this device. Google sign-in starts empty and keeps the goal and runs in one Drive file. Never fall back to the sample data when Drive fails.
 - The open-weight Cloudflare Worker is the default AI route; Gemini is optional through `AI_PROVIDER`. Never expose API keys in browser files or commits, and never log tokens.
 - Keep a calculated local fallback for AI outages or quota limits.
-- Never call the model automatically. Keep the last model reading per account on the device, clear it on sign-out, and keep it through cloud refreshes. It goes stale only when the runs or goal change; the runner can always re-analyze by clicking. Bump `promptVersion` in `ai-analysis.js` whenever `SYSTEM_PROMPT` changes.
+- Never call the model automatically. Keep the last model reading per account on the device, clear it on sign-out, and keep it through cloud refreshes. The button serves one model reading per set of runs and goal: it is disabled after a reading and returns only when a run or the goal changes. A calculated fallback can be retried. Bump `promptVersion` in `ai-analysis.js` whenever `SYSTEM_PROMPT` changes.
 - Keep this guide and `SYSTEM_PROMPT` in `worker.js` aligned when product rules change.

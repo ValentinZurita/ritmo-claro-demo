@@ -88,21 +88,26 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
   function showChartThinking(_title, detail) {
     setReading(detail, true);
   }
+  // One model reading per set of runs and goal; a new run or goal edit makes the button available again.
+  function hasModelReading() {
+    return resultSources.get(cacheKey("all", chartRuns())) === "model";
+  }
   function updateControls() {
-    ui.button.disabled = analyzing;
+    const readOnce = hasModelReading();
+    ui.button.disabled = analyzing || readOnce;
     ui.button.classList.toggle("is-busy", analyzing);
     if (analyzing) {
       setActionLabel("Analizando…");
       return;
     }
-    const key = cacheKey("all", chartRuns()),
-      source = resultSources.get(key);
+    if (readOnce) {
+      setActionLabel("Análisis al día");
+      return;
+    }
     setActionLabel(
-      source === "model"
-        ? "Volver a analizar"
-        : resultCache.has(key)
-          ? "Reintentar análisis"
-          : "Analizar con IA",
+      resultCache.has(cacheKey("all", chartRuns()))
+        ? "Reintentar análisis"
+        : "Analizar con IA",
     );
   }
   function extractObject(text) {
@@ -1291,7 +1296,7 @@ import { getComparableRunGroup } from "./analytics/comparable-runs.js";
     renderCurrentCarousel(chartRuns());
   });
   ui.button.onclick = async () => {
-    if (analyzing) return;
+    if (analyzing || hasModelReading()) return;
     const saved = savedQuotaReading();
     if (saved) {
       const key = cacheKey("all", chartRuns());
